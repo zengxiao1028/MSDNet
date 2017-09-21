@@ -5,11 +5,11 @@ import scipy
 import os
 def main():
 
-    save_dir = './cifar10'
+    save_dir = './dataset/cifar10'
 
     (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-    x_train = np.array([scipy.misc.imresize(img, (224, 224)) for img in x_train])
-    x_test = np.array([scipy.misc.imresize(img, (224, 224)) for img in x_test])
+
+
 
     ## init dict for file names
     class_cnt_dict = dict()
@@ -20,13 +20,13 @@ def main():
         resized_image = scipy.misc.imresize(each, (224, 224))
 
         # class folder
-        label = str(y_train[idx])
+        label = str(y_train[idx][0])
         class_folder = os.path.join(save_dir,label)
 
         os.makedirs(class_folder,exist_ok=True)
 
         # write image to disk
-        cv2.write(resized_image,os.path.join(class_folder,class_cnt_dict[label]))
+        cv2.imwrite(os.path.join(class_folder, str(class_cnt_dict[label]) + '.jpg'),resized_image)
 
         class_cnt_dict[label] += 1
 
