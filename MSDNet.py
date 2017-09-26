@@ -105,12 +105,21 @@ def get_keras_model(x_train_shape):
     intermediate_6 = get_sub_prediction(model.get_layer('conv_pw_13_relu').output)
 
 
-    new_model = Model(inputs=model.input, outputs=[intermediate_1,intermediate_2,intermediate_3,intermediate_4,intermediate_5, intermediate_6])
+    # new_model = Model(inputs=model.input, outputs=[intermediate_1,intermediate_2,intermediate_3,intermediate_4,intermediate_5, intermediate_6])
+    #
+    # new_model.compile(optimizer='adam',
+    #               loss='categorical_crossentropy',
+    #               loss_weights=[0.2] * 6,
+    #               metrics=['accuracy'])
+
+
+    new_model = Model(inputs=model.input,
+                      outputs=intermediate_6)
 
     new_model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
-                  loss_weights=[0.2] * 6,
                   metrics=['accuracy'])
+
 
     return new_model
 

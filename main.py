@@ -14,7 +14,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
-
+import time
 import os
 import pickle
 import numpy as np
@@ -27,13 +27,14 @@ epochs = 100
 data_augmentation = True
 num_predictions = 20
 save_dir = os.path.join(os.getcwd(), 'saved_models')
-model_name = 'keras_cifar10_trained_model.h5'
+model_name = 'MSDNet_cifar10_trained_model_{}.h5'.format(time.time())
+num_classifiers = 1
 
 def data_generator(data_gen):
 
     while True:
         x, y = data_gen.next()
-        yield x, [y] * 6
+        yield x, [y] * num_classifiers
 
 
 def prepro_fn(img):
@@ -53,7 +54,7 @@ def main():
 
 
     model = MSDNet.get_keras_model(x_train.shape)
-    auto_save_callback = keras.callbacks.ModelCheckpoint('./models/MSDNet_model')
+    auto_save_callback = keras.callbacks.ModelCheckpoint(os.path.join('./models',model_name))
     tensorboard = keras.callbacks.TensorBoard(log_dir='./logs')
     if not data_augmentation:
         print('Not using data augmentation.')
@@ -117,14 +118,12 @@ def main():
         labels = pickle.load(f)
 
     # Evaluate model with test data set and share sample prediction results
-    evaluation = model.evaluate_generator(test_datagen.flow(x_test, y_test,
-                                          batch_size=batch_size),
+    evaluation = model.evaluate_generator(data_generator(validation_generator),
                                           steps=x_test.shape[0] // batch_size)
 
     print('Model Accuracy = %.2f' % (evaluation[1]))
 
-    predict_gen = model.predict_generator(test_datagen.flow(x_test, y_test,
-                                          batch_size=batch_size),
+    predict_gen = model.predict_generator(data_generator(validation_generator),
                                           steps=x_test.shape[0] // batch_size)
 
     for predict_index, predicted_y in enumerate(predict_gen):
