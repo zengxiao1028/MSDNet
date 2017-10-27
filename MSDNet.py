@@ -10,6 +10,7 @@ from keras.applications.inception_v3 import InceptionV3
 from keras.preprocessing import image
 from keras.applications.resnet50 import preprocess_input, decode_predictions
 import numpy as np
+from keras.utils import training_utils
 import tensorflow as tf
 
 def get_model(x_train_shape):
@@ -89,7 +90,6 @@ def get_sub_prediction(intermediate_output):
     return x
 
 def get_keras_model(x_train_shape):
-
     model = MobileNet(weights='imagenet')
 
     intermediate_1 = get_sub_prediction(model.get_layer('conv_pw_1_relu').output)
@@ -104,7 +104,6 @@ def get_keras_model(x_train_shape):
 
     intermediate_6 = get_sub_prediction(model.get_layer('conv_pw_13_relu').output)
 
-
     # new_model = Model(inputs=model.input, outputs=[intermediate_1,intermediate_2,intermediate_3,intermediate_4,intermediate_5, intermediate_6])
     #
     # new_model.compile(optimizer='adam',
@@ -117,11 +116,36 @@ def get_keras_model(x_train_shape):
                       outputs=intermediate_6)
 
     new_model.compile(optimizer='adam',
+                      loss='categorical_crossentropy',
+                      metrics=['accuracy'])
+
+    return new_model
+
+def get_keras_model_multiple_gpus(x_train_shape):
+
+    # Instantiate the base model
+    # (here, we do it on CPU, which is optional).
+    with tf.device('/cpu:0'):
+
+
+
+        model = MobileNet(weights='imagenet')
+
+        intermediate_6 = get_sub_prediction(model.get_layer('conv_pw_13_relu').output)
+
+
+        new_model = Model(inputs=model.input,
+                          outputs=intermediate_6)
+
+    # This assumes that your machine has 8 available GPUs.
+    parallel_model = training_utils.multi_gpu_model(new_model, gpus=2)
+
+    parallel_model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
 
-    return new_model
+    return parallel_model
 
 if __name__ == '__main__':
     get_keras_model(None)

@@ -11,16 +11,13 @@ from __future__ import print_function
 import keras
 from keras.datasets import cifar10
 from keras.preprocessing.image import ImageDataGenerator
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Conv2D, MaxPooling2D
 import time
 import os
 import pickle
 import numpy as np
 import MSDNet
-import scipy
-from numpy.random import shuffle
+
+
 batch_size = 64
 num_classes = 10
 epochs = 100
@@ -94,7 +91,7 @@ def main():
                             epochs=epochs,
                             validation_data= data_generator(validation_generator),
                             validation_steps= x_test.shape[0] // batch_size,
-                            callbacks=[auto_save_callback,tensorboard])
+                            callbacks=[auto_save_callback,tensorboard],verbose=1)
 
     # Save model and weights
     if not os.path.isdir(save_dir):
