@@ -24,12 +24,12 @@ model_tag = 'VGG_10p'
 
 class VGG:
     def __init__(self, conv_setting, recover_setting, weights=None, freeze=True, lam=1.0):
-        self.x = tf.placeholder(tf.float32, shape=[None, 32, 32, 3])
-        x = tf.image.resize_images(self.x, (height_width, height_width))  # upsample to 224
+        self.x = tf.placeholder(tf.float32, shape=[None, height_width, height_width, 3])
+        # x = tf.image.resize_images(self.x, (height_width, height_width))  # upsample to 224
         self.y = tf.placeholder(tf.float32, shape=[None, num_classes])
         self.vec512 = tf.placeholder(tf.float32, shape=[None, num_student])
         ''' Switch between framework and preload'''
-        logits, vec512 = VGG_preload(x, conv_setting, weights, recover_setting, freeze=freeze)
+        logits, vec512 = VGG_preload(self.x, conv_setting, weights, recover_setting, freeze=freeze)
         self.kd_dist = tf.reduce_mean(tf.squared_difference(vec512, self.vec512))  # knowledge distillation distance
         self.loss_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y, logits=logits))
         loss = lam * self.kd_dist + self.loss_entropy
@@ -54,9 +54,9 @@ class VGG:
             acc = 0
             kd = 0
             for i in range(train_steps):
-                batch = train_generator.next()
+                batch = next(train_generator)
                 y = np.zeros((batch_size, num_classes))
-                y[np.arange(batch_size), batch[1][:, 0].astype(int)] = 1
+                y[np.arange(batch_size), np.squeeze(batch[1][:, 0]).astype(int)] = 1
                 _, l, k, a = self.sess.run([self.train_op, self.loss_entropy, self.kd_dist, self.accuracy], feed_dict={
                     self.x: batch[0],
                     self.y: y,
@@ -85,9 +85,9 @@ class VGG:
         val_acc = 0
         val_kd = 0
         for i in range(validation_steps):
-            batch = validation_generator.next()
+            batch = next(validation_generator)
             y = np.zeros((batch_size, num_classes))
-            y[np.arange(batch_size), batch[1][:, 0].astype(int)] = 1
+            y[np.arange(batch_size), np.squeeze(batch[1][:, 0]).astype(int)] = 1
             l, k, a = self.sess.run([self.loss_entropy, self.kd_dist, self.accuracy], feed_dict={
                 self.x: batch[0],
                 self.y: y,

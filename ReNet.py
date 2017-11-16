@@ -474,4 +474,5 @@ if __name__ == '__main__':
     # flop_cal(VGG_conv_05p)
     # a = VGG_05p(weights='VGG16-E05p-8358-1fc512-90epoch.h5').find_filter_prune(trim_setting=VGG_conv_05p)
     # print('ok')
-    main_05to03()
+    # main_05to03()
+    VGG_03p().model.summary()

@@ -36,7 +36,6 @@ def prepro_fn(img):
     :param img:
     :return:
     """
-    # img = scipy.misc.imresize(img, (224, 224))
     img = np.array(img).astype('float32')
     mean_pixel = [103.939, 116.779, 123.68]
     for c in range(3):
@@ -45,9 +44,17 @@ def prepro_fn(img):
     return img
 
 
-def resize(batch_img):
-    img = np.array([scipy.misc.imresize(batch_img[0][i, ...], (224, 224)) for i in range(batch_size)])
-    return [img, batch_img[1]]
+def resize(gen):
+    """
+    resize image to 224 x 224
+    change to one-hot
+    """
+    while True:
+        g = gen.next()
+        img = np.array([scipy.misc.imresize(g[0][i, ...], (224, 224)) for i in range(batch_size)])
+        y = np.zeros((batch_size, num_classes))
+        y[np.arange(batch_size), np.squeeze(g[1])] = 1
+        yield (img, y)
 
 
 def main():
@@ -87,21 +94,21 @@ def main():
     #     batch_size=batch_size,
     #     class_mode='categorical')
 
-    t = train_datagen.flow(x_train, y_train,
-                           batch_size=batch_size)
-    train_generator = resize(t)
+    train_generator = resize(train_datagen.flow(x_train, y_train,
+                                                batch_size=batch_size))
 
     test_datagen = ImageDataGenerator(preprocessing_function=prepro_fn)
 
-    validation_generator = test_datagen.flow(x_test, y_test,
-                                             batch_size=batch_size)
+    validation_generator = resize(test_datagen.flow(x_test, y_test,
+                                                    batch_size=batch_size))
 
     model.fit_generator(generator=train_generator,
                         steps_per_epoch=x_train_num // batch_size,
                         epochs=epochs,
                         validation_data=validation_generator,
                         validation_steps=x_test_num // batch_size,
-                        callbacks=[auto_save_callback, tensorboard], )
+                        callbacks=[auto_save_callback, tensorboard],
+                        max_queue_size=50)
 
     # Evaluate model with test data set and share sample prediction results
     evaluation = model.evaluate_generator(validation_generator,

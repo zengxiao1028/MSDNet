@@ -27,8 +27,17 @@ def prepro_fn(img):
     for c in range(3):
         img[:, :, c] = img[:, :, c] - mean_pixel[c]
     # img = scipy.misc.imresize(img, (224, 224))
-    # img = (img / 255. - 0.5) * 2.0
     return img
+
+
+def resize(gen):
+    """
+    resize image to 224 x 224
+    """
+    while True:
+        g = gen.next()
+        img = np.array([scipy.misc.imresize(g[0][i, ...], (224, 224)) for i in range(batch_size)])
+        yield (img, g[1])
 
 
 def main():
@@ -55,13 +64,13 @@ def main():
         width_shift_range=0.1,
         height_shift_range=0.1)
 
-    train_generator = train_datagen.flow(x_train, y_train,
-                                         batch_size=batch_size)
+    train_generator = resize(train_datagen.flow(x_train, y_train,
+                                                batch_size=batch_size))
 
     test_datagen = ImageDataGenerator(preprocessing_function=prepro_fn)
 
-    validation_generator = test_datagen.flow(x_test, y_test,
-                                             batch_size=batch_size)
+    validation_generator = resize(test_datagen.flow(x_test, y_test,
+                                                    batch_size=batch_size))
 
     # model.validate(validation_generator,
     #                validation_steps=x_test_num // batch_size)
