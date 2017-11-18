@@ -32,7 +32,15 @@ class ResNet50(object):
         self.config_path = config_path
         with open(config_path) as config_buffer:
             self.config = json.load(config_buffer)
-        if self.config['model']['weights'] in {'imagenet', None}:
+
+        if weights_path is not None:
+            self.model = self._resNet50(self.config['model']['filters'],
+                                        include_top=self.config['model']['include_top'],
+                                        weights=None,
+                                        classes=self.config['model']['classes'],
+                                        model_name=self.config['model']['name'])
+            self.model.load_weights(weights_path)
+        elif self.config['model']['weights'] in {'imagenet', None}:
             self.model = self._resNet50(self.config['model']['filters'],
                                         include_top=self.config['model']['include_top'],
                                         weights=self.config['model']['weights'],
@@ -44,10 +52,7 @@ class ResNet50(object):
                                         weights=None,
                                         classes=self.config['model']['classes'],
                                         model_name=self.config['model']['name'])
-            if weights_path is None:
-                self.model.load_weights(self.config['model']['weights'])
-            else:
-                self.model.load_weights(self.model.load_weights(self.config['model']['weights']))
+            self.model.load_weights(self.model.load_weights(self.config['model']['weights']))
 
     def identity_block(self,input_tensor, kernel_size, filters, stage, block):
         """The identity block is the block that has no conv layer at shortcut.
