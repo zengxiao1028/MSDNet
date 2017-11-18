@@ -3,9 +3,9 @@
         "architecture":         "resnet",
         "input_size":           224,
         "filters":              [[64,0,0],
-                                [64,32,256],
-                                [64,32,256],
-                                [64,32,256],
+                                [64,32,128],
+                                [64,32,128],
+                                [64,32,128],
                                 [128,64,512],
                                 [128,64,512],
                                 [128,64,512],
@@ -19,11 +19,11 @@
                                 [512,512,1024],
                                 [512,512,1024],
                                 [512,512,1024]],
-        "name":                  "95",
-        "weights":                "imagenet",
+        "name":                  "90",
+        "weights":                "90_trimmed",
         "classes":                10,
-        "include_top":            true
-
+        "include_top":            true,
+        "trimfrom":               "/home/xiao/projects/MSDNet/resnet/results/100_1"
     },
 
     "train": {
