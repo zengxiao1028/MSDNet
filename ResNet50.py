@@ -13,7 +13,7 @@ import numpy as np
 import warnings,os
 from keras.optimizers import adam
 import keras.backend as K
-import json
+import json,shutil
 from keras.utils.data_utils import get_file
 from keras.utils import layer_utils
 from collections import defaultdict
@@ -475,7 +475,7 @@ class ResNet50(object):
         result_counter = len([log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
         saved_dir = os.path.join(training_save_dir,name + '_' + str(result_counter))
         os.makedirs(saved_dir, exist_ok=True)
-
+        shutil.copyfile(self.config_path, os.path.join(saved_dir, self.config_path.split('/')[-1]))
         best_checkpoint = ModelCheckpoint(os.path.join(saved_dir,  self.model.name +'_best.h5'),
                                      monitor='val_acc',
                                      verbose=1,
@@ -510,6 +510,17 @@ class ResNet50(object):
         return evaluation
 
 
+class Trimmer(object):
+
+    def __init__(self, original_model_folder, target_config_path):
+        self.original_model_folder = original_model_folder
+
+        self.targer_config_path = target_config_path
+
+
+    def trim(self):
+        pass
+
 
 if __name__ == '__main__':
 
@@ -518,7 +529,7 @@ if __name__ == '__main__':
     resnet100.train_cifar10()
 
     # resnet100 = ResNet50('./resnet/configs/100.json')
-    #
+
     # trim_config_path = "./resnet/configs/90.json"
     # with open(trim_config_path) as config_buffer:
     #     config = json.load(config_buffer)

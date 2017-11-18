@@ -22,8 +22,7 @@
         "name":                  "90",
         "weights":                "90_trimmed",
         "classes":                10,
-        "include_top":            true,
-        "trimfrom":               "/home/xiao/projects/MSDNet/resnet/results/100_1"
+        "include_top":            true
     },
 
     "train": {
