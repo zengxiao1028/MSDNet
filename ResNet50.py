@@ -542,7 +542,7 @@ class Trimmer(object):
     def __init__(self, original_model_folder, target_config_path):
         self.original_model_folder = original_model_folder
 
-        self.targer_config_path = target_config_path
+        self.target_config_path = target_config_path
 
 
     def trim(self):
@@ -552,7 +552,7 @@ class Trimmer(object):
 
         trimmed_save_folder = './resnet/trimmed_models/' + target_config['model']['name']
         os.makedirs(trimmed_save_folder,exist_ok=True)
-        log_file = open(os.path.join(trimmed_save_folder,"log.txt"))
+        log_file = open(os.path.join(trimmed_save_folder,"log.txt"),'w')
 
         original_config_paths = glob.glob(os.path.join(self.original_model_folder,'*.json'))
         assert len(original_config_paths)==1
@@ -600,11 +600,14 @@ class Trimmer(object):
 if __name__ == '__main__':
 
 
-    # resnet100 = ResNet50('./resnet/configs/100.json')
-    # resnet100.train_cifar10()
+    #resnet100 = ResNet50('./resnet/configs/100.json')
+    #resnet100.train_cifar10()
 
     trimmer = Trimmer('./resnet/results/100_1','./resnet/configs/90.json')
     trimmer.trim()
+
+    resnet = ResNet50(original_config_path, os.path.join(self.original_model_folder, config['model']['name'] + '.h5'))
+
     # resnet100 = ResNet50('./resnet/configs/100.json')
 
     # trim_config_path = "./resnet/configs/90.json"
