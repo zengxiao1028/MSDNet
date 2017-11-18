@@ -503,7 +503,7 @@ class ResNet50(object):
                                 callbacks=[best_checkpoint, checkpoint,tensorboard],
                                 max_queue_size=64)
 
-    def eval_cifar10(self, validation_generator, validation_steps):
+    def eval_cifar10(self):
         def resize(gen):
             """
             resize image to 224 x 224
@@ -523,10 +523,11 @@ class ResNet50(object):
 
         validation_generator = resize(test_datagen.flow(x_test, y_test,
                                                         batch_size=self.config['train']['batch_size']))
-
-
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         evaluation = self.model.evaluate_generator(validation_generator,
                                               steps=x_test.shape[0] // self.config['train']['batch_size'])
+        print(evaluation)
         return evaluation
 
 
@@ -556,7 +557,7 @@ if __name__ == '__main__':
     # resnet100 = ResNet50('./resnet/configs/100.json')
     # resnet100.train_cifar10()
 
-    trimmer = Trimmer('/Users/xiaozeng/PycharmProjects/MSDNet/resnet/results/100_5','/Users/xiaozeng/PycharmProjects/MSDNet/resnet/configs/90.json')
+    trimmer = Trimmer('./resnet/results/100_1','./resnet/configs/90.json')
     trimmer.trim()
     # resnet100 = ResNet50('./resnet/configs/100.json')
 
