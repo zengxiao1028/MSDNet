@@ -1,3 +1,6 @@
+import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from keras.layers import Conv2D,BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -498,7 +501,7 @@ class ResNet50(object):
                                 validation_data=validation_generator,
                                 validation_steps=x_test.shape[0] // self.config['train']['batch_size'],
                                 callbacks=[best_checkpoint, checkpoint,tensorboard],
-                                max_queue_size=8)
+                                max_queue_size=64)
 
     def evaluate(self,validation_generator,validation_steps):
 
