@@ -567,17 +567,9 @@ class Trimmer(object):
         os.makedirs(trimmed_save_folder,exist_ok=True)
         log_file = open(os.path.join(trimmed_save_folder,"log.txt"),'w')
 
-        original_config_paths = glob.glob(os.path.join(self.original_model_folder,'*.json'))
-        assert len(original_config_paths)==1
+        log_file.write('loading original model from folder %s \n' % self.original_model_folder)
+        resnet = ResNet50.init_from_folder(self.original_model_folder)
 
-        original_config_path = original_config_paths[0]
-        with open(original_config_path) as config_buffer:
-            config = json.load(config_buffer)
-
-        log_file.write('loading original model config %s \n' % original_config_path)
-        log_file.write('loading original model weights %s \n\n' % os.path.join(self.original_model_folder,config['model']['name']+'.h5'))
-
-        resnet = ResNet50(original_config_path, os.path.join(self.original_model_folder,config['model']['name']+'.h5'))
 
         if hasattr(resnet.model, '_collected_trainable_weights'):
             trainable_count = count_params(resnet.model._collected_trainable_weights)
