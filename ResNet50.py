@@ -463,8 +463,8 @@ class ResNet50(object):
 
         #### comppile model ########
         opt = adam(lr=1e-4)
-        self.model.compile(opt,loss='categorical_crossentropy', metrics=['accuracy'])
-
+        self.model.compile(opt,loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        self.model.summary()
         #### prepare training ########
         training_save_dir = './resnet/results'
         name = self.model.name
@@ -498,7 +498,7 @@ class ResNet50(object):
                                 validation_data=validation_generator,
                                 validation_steps=x_test.shape[0] // self.config['train']['batch_size'],
                                 callbacks=[best_checkpoint, checkpoint,tensorboard],
-                                max_queue_size=16)
+                                max_queue_size=8)
 
     def evaluate(self,validation_generator,validation_steps):
 
