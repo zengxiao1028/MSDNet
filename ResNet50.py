@@ -553,7 +553,7 @@ class Trimmer(object):
         with open(original_config_path) as config_buffer:
             config = json.load(config_buffer)
 
-        resnet = ResNet50(original_config_path, os.path.join(original_config_path,config['model']['name']+'.h5'))
+        resnet = ResNet50(original_config_path, os.path.join(self.original_model_folder,config['model']['name']+'.h5'))
         resnet.eval_cifar10()
 
 if __name__ == '__main__':
