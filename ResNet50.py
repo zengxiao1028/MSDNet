@@ -55,6 +55,19 @@ class ResNet50(object):
                                         model_name=self.config['model']['name'])
             self.model.load_weights(self.model.load_weights(self.config['model']['weights']))
 
+    @classmethod
+    def init_from_folder(cls,folder_path):
+        original_config_paths = glob.glob(os.path.join(folder_path, '*.json'))
+        assert len(original_config_paths) == 1
+
+        original_config_path = original_config_paths[0]
+        with open(original_config_path) as config_buffer:
+            config = json.load(config_buffer)
+
+        resnet = cls(original_config_path,
+                          os.path.join(folder_path, config['model']['name'] + '.h5'))
+        return resnet
+
     def identity_block(self,input_tensor, kernel_size, filters, stage, block):
         """The identity block is the block that has no conv layer at shortcut.
         # Arguments
