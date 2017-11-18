@@ -17,6 +17,7 @@ import json,shutil,glob
 from keras.utils.data_utils import get_file
 from keras.utils import layer_utils
 from collections import defaultdict
+from keras.utils.layer_utils import count_params
 from keras.applications.imagenet_utils import _obtain_input_shape,preprocess_input,decode_predictions
 from keras.engine.topology import get_source_inputs
 WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels.h5'
@@ -546,6 +547,13 @@ class Trimmer(object):
 
     def trim(self):
 
+        with open(self.target_config_path) as config_buffer:
+            target_config = json.load(config_buffer)
+
+        trimmed_save_folder = './resnet/trimmed_models/' + target_config['model']['name']
+        os.makedirs(trimmed_save_folder,exist_ok=True)
+        log_file = open(os.path.join(trimmed_save_folder,"log.txt"))
+
         original_config_paths = glob.glob(os.path.join(self.original_model_folder,'*.json'))
         assert len(original_config_paths)==1
 
@@ -553,8 +561,41 @@ class Trimmer(object):
         with open(original_config_path) as config_buffer:
             config = json.load(config_buffer)
 
+        log_file.write('loading original model config %s \n' % original_config_path)
+        log_file.write('loading original model weights %s \n\n' % os.path.join(self.original_model_folder,config['model']['name']+'.h5'))
+
         resnet = ResNet50(original_config_path, os.path.join(self.original_model_folder,config['model']['name']+'.h5'))
-        resnet.eval_cifar10()
+
+        if hasattr(resnet.model, '_collected_trainable_weights'):
+            trainable_count = count_params(resnet.model._collected_trainable_weights)
+        else:
+            trainable_count = count_params(resnet.model.trainable_weights)
+        non_trainable_count = int(
+            np.sum([K.count_params(p) for p in set(resnet.model.non_trainable_weights)]))
+        log_file.write('Original Model total params: %d, Trainable params %d \n\n' % (trainable_count, non_trainable_count))
+
+
+        log_file.write( 'Trimming model, using config : %s \n' % self.target_config_path)
+
+        trimmed_model = resnet.trim(target_config['model']['filters'],target_config['model']['name'])
+
+        if hasattr(trimmed_model, '_collected_trainable_weights'):
+            trainable_count = count_params(trimmed_model._collected_trainable_weights)
+        else:
+            trainable_count = count_params(trimmed_model.trainable_weights)
+        non_trainable_count = int(
+            np.sum([K.count_params(p) for p in set(trimmed_model.non_trainable_weights)]))
+        log_file.write('Trimmed Model total params: %d, Trainable params %d \n' % (trainable_count, non_trainable_count))
+
+        trimmed_save_folder = './resnet/trimmed_models/' + target_config['model']['name']
+        trimmed_model.save(os.path.join(trimmed_save_folder, target_config['model']['name']+'.h5'))
+
+        log_file.write(
+            'saving trimmed model to  %s \n' % os.path.join(trimmed_save_folder, target_config['model']['name']+'.h5'))
+
+        shutil.copyfile(self.target_config_path, os.path.join(trimmed_save_folder, self.target_config_path.split('/')[-1]))
+
+        log_file.close()
 
 if __name__ == '__main__':
 
