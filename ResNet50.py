@@ -13,7 +13,7 @@ import numpy as np
 import warnings,os
 from keras.optimizers import adam
 import keras.backend as K
-import json,shutil
+import json,shutil,glob
 from keras.utils.data_utils import get_file
 from keras.utils import layer_utils
 from collections import defaultdict
@@ -25,14 +25,13 @@ from keras.preprocessing import image
 
 class ResNet50(object):
 
-    def __init__(self, config_path , trimfrom=None):
+    def __init__(self, config_path, weights_path = None ):
 
         assert os.path.exists(config_path)
 
         self.config_path = config_path
         with open(config_path) as config_buffer:
             self.config = json.load(config_buffer)
-
         if self.config['model']['weights'] in {'imagenet', None}:
             self.model = self._resNet50(self.config['model']['filters'],
                                         include_top=self.config['model']['include_top'],
@@ -45,9 +44,10 @@ class ResNet50(object):
                                         weights=None,
                                         classes=self.config['model']['classes'],
                                         model_name=self.config['model']['name'])
-            self.model.load_weights(self.config['model']['weights'])
-
-        self.trimfrom = trimfrom
+            if weights_path is None:
+                self.model.load_weights(self.config['model']['weights'])
+            else:
+                self.model.load_weights(self.model.load_weights(self.config['model']['weights']))
 
     def identity_block(self,input_tensor, kernel_size, filters, stage, block):
         """The identity block is the block that has no conv layer at shortcut.
@@ -503,10 +503,30 @@ class ResNet50(object):
                                 callbacks=[best_checkpoint, checkpoint,tensorboard],
                                 max_queue_size=64)
 
-    def evaluate(self,validation_generator,validation_steps):
+    def eval_cifar10(self, validation_generator, validation_steps):
+        def resize(gen):
+            """
+            resize image to 224 x 224
+            change to one-hot
+            """
+            while True:
+                imgs, y = gen.next()
+                img = np.array([scipy.misc.imresize(imgs[i, ...], (224, 224)) for i in range(imgs.shape[0])])
+
+                yield (img, y)
+
+        ### prepare dataset #####
+        (_, _), (x_test, y_test) = cifar10.load_data()
+
+
+        test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+
+        validation_generator = resize(test_datagen.flow(x_test, y_test,
+                                                        batch_size=self.config['train']['batch_size']))
+
 
         evaluation = self.model.evaluate_generator(validation_generator,
-                                              steps=validation_steps)
+                                              steps=x_test.shape[0] // self.config['train']['batch_size'])
         return evaluation
 
 
@@ -519,15 +539,25 @@ class Trimmer(object):
 
 
     def trim(self):
-        pass
 
+        original_config_paths = glob.glob(os.path.join(self.original_model_folder,'*.json'))
+        assert len(original_config_paths)==1
+
+        original_config_path = original_config_paths[0]
+        with open(original_config_path) as config_buffer:
+            config = json.load(config_buffer)
+
+        resnet = ResNet50(original_config_path, os.path.join(original_config_path,config['model']['name']+'.h5'))
+        resnet.eval_cifar10()
 
 if __name__ == '__main__':
 
 
-    resnet100 = ResNet50('./resnet/configs/100.json')
-    resnet100.train_cifar10()
+    # resnet100 = ResNet50('./resnet/configs/100.json')
+    # resnet100.train_cifar10()
 
+    trimmer = Trimmer('/Users/xiaozeng/PycharmProjects/MSDNet/resnet/results/100_5','/Users/xiaozeng/PycharmProjects/MSDNet/resnet/configs/90.json')
+    trimmer.trim()
     # resnet100 = ResNet50('./resnet/configs/100.json')
 
     # trim_config_path = "./resnet/configs/90.json"
