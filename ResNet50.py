@@ -177,9 +177,9 @@ class ResNet50(object):
                              '`None` (random initialization) or `imagenet` '
                              '(pre-training on ImageNet).')
 
-        if weights == 'imagenet' and include_top and classes != 1000:
-            raise ValueError('If using `weights` as imagenet with `include_top`'
-                             ' as true, `classes` should be 1000')
+        #if weights == 'imagenet' and include_top and classes != 1000:
+        #    raise ValueError('If using `weights` as imagenet with `include_top`'
+        #                     ' as true, `classes` should be 1000')
 
         # Determine proper input shape
         input_shape = _obtain_input_shape(input_shape,
@@ -261,7 +261,7 @@ class ResNet50(object):
                                         WEIGHTS_PATH_NO_TOP,
                                         cache_subdir='models',
                                         md5_hash='a268eb855778b3df3c7506639542a6af')
-            model.load_weights(weights_path)
+            model.load_weights(weights_path,by_name=True)
             if K.backend() == 'theano':
                 layer_utils.convert_all_kernels_in_model(model)
                 if include_top:
@@ -464,7 +464,7 @@ class ResNet50(object):
 
         #### comppile model ########
         opt = adam(lr=1e-4)
-        self.model.compile(opt,loss='categorical_crossentropy', metrics='accuracy')
+        self.model.compile(opt,loss='categorical_crossentropy', metrics=['accuracy'])
 
         #### prepare training ########
         training_save_dir = './resnet/results'
@@ -499,7 +499,7 @@ class ResNet50(object):
                                 validation_data=validation_generator,
                                 validation_steps=x_test.shape[0] // self.config['train']['batch_size'],
                                 callbacks=[best_checkpoint, checkpoint,tensorboard],
-                                max_queue_size=32)
+                                max_queue_size=16)
 
     def evaluate(self,validation_generator,validation_steps):
 
