@@ -342,6 +342,7 @@ class ResNet50(object):
         # find out which filters to be cut
         num_filter = w.shape[3]  # original filter number, e.g., 48
         num_trim_filter = filters_config[0][0]  # filter number after trim, e.g., 32
+        assert num_filter >= num_trim_filter
         norml1 = [np.sum(np.fabs(w[:, :, :, idx])) for idx in
                   range(num_filter)]  # calculate the filter rank using l1 norm
         pos = np.argsort(norml1)[:num_filter - num_trim_filter]
@@ -378,6 +379,13 @@ class ResNet50(object):
         pos = self.trim_id_block(trimmed_model, filters_config[15], stage=5, block='b', last_pos=pos)
         pos = self.trim_id_block(trimmed_model, filters_config[16], stage=5, block='c', last_pos=pos)
 
+        #trim last layer
+        if len(pos)>0:
+            w, b = self.model.get_layer('fc1000').get_weights()
+            w = np.reshape(w.T, (-1, w.shape[0], w.shape[1], w.shape[3]))
+            w = np.delete(w, pos, axis=3)
+            w = np.reshape(w, (w.shape[0],-1)).T
+            self.model.get_layer('fc1000').set_weights([w,b])
         return trimmed_model
 
     def trim_id_block(self, trim_model, filters, stage , block, last_pos=None):
@@ -394,6 +402,7 @@ class ResNet50(object):
             # cut current layer
             num_filter = w.shape[3]  # original filter number, e.g., 48
             num_trim_filter = filters[idx]  # filter number after trim, e.g., 32
+            assert num_filter >= num_trim_filter
             norml1 = [np.sum(np.fabs(w[:, :, :, idx])) for idx in
                       range(num_filter)]  # calculate the filter rank using l1 norm
             pos = np.argsort(norml1)[:num_filter - num_trim_filter]
@@ -430,6 +439,7 @@ class ResNet50(object):
         # cut current layer
         num_filter = w.shape[3]  # original filter number, e.g., 48
         num_trim_filter = filters[2]  # filter number after trim, e.g., 32
+        assert num_filter >= num_trim_filter
         norml1 = [np.sum(np.fabs(w[:, :, :, idx])) for idx in
                   range(num_filter)]  # calculate the filter rank using l1 norm
         pos = np.argsort(norml1)[:num_filter - num_trim_filter]
