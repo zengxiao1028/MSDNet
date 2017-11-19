@@ -602,6 +602,8 @@ class Trimmer(object):
 
         log_file.close()
 
+        keras.backend.clear_session()
+
 if __name__ == '__main__':
 
 
@@ -611,7 +613,10 @@ if __name__ == '__main__':
     trimmer = Trimmer('./resnet/results/100_1','./resnet/configs/90.json')
     trimmer.trim()
 
-    resnet = ResNet50(original_config_path, os.path.join(self.original_model_folder, config['model']['name'] + '.h5'))
+    resnet = ResNet50.init_from_folder('./resnet/trimmed_models/90')
+    resnet.eval_cifar10()
+
+    resnet.train_cifar10()
 
     # resnet100 = ResNet50('./resnet/configs/100.json')
 
