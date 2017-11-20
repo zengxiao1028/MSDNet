@@ -357,6 +357,7 @@ class ResNet50(object):
         var = np.delete(var, pos, axis=0)
 
         # set conv and conv
+
         trimmed_model.get_layer('conv1').set_weights([w, b])
         trimmed_model.get_layer('bn_conv1').set_weights([gamma, beta, mean, var])
 
@@ -368,7 +369,7 @@ class ResNet50(object):
         pos = self.trim_id_block(trimmed_model, filters_config[5], stage=3, block='b', last_pos=pos)
         pos = self.trim_id_block(trimmed_model, filters_config[6], stage=3, block='c', last_pos=pos)
         pos = self.trim_id_block(trimmed_model, filters_config[7], stage=3, block='d', last_pos=pos)
-
+        #
         pos = self.trim_conv_block(trimmed_model, filters_config[8], stage=4, block='a', last_pos=pos)
         pos = self.trim_id_block(trimmed_model, filters_config[9], stage=4, block='b', last_pos=pos)
         pos = self.trim_id_block(trimmed_model, filters_config[10], stage=4, block='c', last_pos=pos)
@@ -379,14 +380,14 @@ class ResNet50(object):
         pos = self.trim_conv_block(trimmed_model, filters_config[14], stage=5, block='a', last_pos=pos)
         pos = self.trim_id_block(trimmed_model, filters_config[15], stage=5, block='b', last_pos=pos)
         pos = self.trim_id_block(trimmed_model, filters_config[16], stage=5, block='c', last_pos=pos)
-
+        #
         #trim last layer
-        if len(pos)>0:
-            w, b = self.model.get_layer('fc1000').get_weights()
-            w = np.reshape(w.T, (-1, w.shape[0], w.shape[1], w.shape[3]))
-            w = np.delete(w, pos, axis=3)
-            w = np.reshape(w, (w.shape[0],-1)).T
-            self.model.get_layer('fc1000').set_weights([w,b])
+        w, b = self.model.get_layer('fc1000').get_weights()
+        ## test ##
+        #w = np.random.normal(0, 0.01, w.shape)
+        ## test ##
+        w = np.delete(w, pos, axis=0)
+        trimmed_model.get_layer('fc1000').set_weights([w,b])
         return trimmed_model
 
     def trim_id_block(self, trim_model, filters, stage , block, last_pos=None):
@@ -409,7 +410,7 @@ class ResNet50(object):
             pos = np.argsort(norml1)[:num_filter - num_trim_filter]
 
             w = np.delete(w, pos, axis=3)
-            if last_pos is not None:
+            if last_pos is not None and len(last_pos) >0:
                 w = np.delete(w, last_pos, axis=2)
                 last_pos = None
             b = np.delete(b, pos, axis=0)
@@ -446,7 +447,7 @@ class ResNet50(object):
         pos = np.argsort(norml1)[:num_filter - num_trim_filter]
 
         w = np.delete(w, pos, axis=3)
-        if last_pos is not None:
+        if last_pos is not None and len(last_pos)>0:
             w = np.delete(w, last_pos, axis=2)
         b = np.delete(b, pos, axis=0)
         gamma = np.delete(gamma, pos, axis=0)
@@ -618,31 +619,31 @@ class Trimmer(object):
 if __name__ == '__main__':
 
 
-    resnet100 = ResNet50('./resnet/configs/100.json')
+    # resnet100 = ResNet50('./resnet/configs/100.json')
+    #
+    # print('##### Training resnet90 #####')
+    # trimmer = Trimmer('./resnet/results/100_1','./resnet/configs/90.json')
+    # trimmer.trim()
+    # resnet90 = ResNet50.init_from_folder('./resnet/trimmed_models/90')
+    # resnet90.eval_cifar10()
+    # resnet90.train_cifar10()
 
-    print('##### Training resnet90 #####')
-    trimmer = Trimmer('./resnet/results/100_1','./resnet/configs/90.json')
-    trimmer.trim()
-    resnet90 = ResNet50.init_from_folder('./resnet/trimmed_models/90')
-    resnet90.eval_cifar10()
-    resnet90.train_cifar10()
-
-    print('##### Training resnet80 #####')
-    trimmer = Trimmer('./resnet/results/90_1', './resnet/configs80.json')
-    trimmer.trim()
-    resnet80 = ResNet50.init_from_folder('./resnet/trimmed_models/80')
-    resnet80.eval_cifar10()
-    resnet80.train_cifar10()
+    # print('##### Training resnet80 #####')
+    # trimmer = Trimmer('./resnet/results/90_1', './resnet/configs/80.json')
+    # trimmer.trim()
+    # resnet80 = ResNet50.init_from_folder('./resnet/trimmed_models/80')
+    # resnet80.eval_cifar10()
+    # resnet80.train_cifar10()
 
     print('##### Training resnet70 ##### ')
-    trimmer = Trimmer('./resnet/results/80_1', './resnet/configs70.json')
+    trimmer = Trimmer('./resnet/results/80_1', './resnet/configs/70.json')
     trimmer.trim()
     resnet70 = ResNet50.init_from_folder('./resnet/trimmed_models/70')
     resnet70.eval_cifar10()
     resnet70.train_cifar10()
 
     print('##### Training resnet60 ##### ')
-    trimmer = Trimmer('./resnet/results/70_1', './resnet/configs60.json')
+    trimmer = Trimmer('./resnet/results/70_1', './resnet/configs/60.json')
     trimmer.trim()
     resnet60 = ResNet50.init_from_folder('./resnet/trimmed_models/60')
     resnet60.eval_cifar10()
