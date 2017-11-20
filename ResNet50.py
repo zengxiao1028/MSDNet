@@ -649,7 +649,33 @@ if __name__ == '__main__':
     resnet60.eval_cifar10()
     resnet60.train_cifar10()
 
+    print('##### Training resnet50 ##### ')
+    trimmer = Trimmer('./resnet/results/60_1', './resnet/configs/50.json')
+    trimmer.trim()
+    resnet50 = ResNet50.init_from_folder('./resnet/trimmed_models/50')
+    resnet50.eval_cifar10()
+    resnet50.train_cifar10()
 
+    print('##### Training resnet40 ##### ')
+    trimmer = Trimmer('./resnet/results/50_1', './resnet/configs/40.json')
+    trimmer.trim()
+    resnet40 = ResNet50.init_from_folder('./resnet/trimmed_models/40')
+    resnet40.eval_cifar10()
+    resnet40.train_cifar10()
+
+    print('##### Training resnet30 ##### ')
+    trimmer = Trimmer('./resnet/results/40_1', './resnet/configs/30.json')
+    trimmer.trim()
+    resnet30 = ResNet50.init_from_folder('./resnet/trimmed_models/30')
+    resnet30.eval_cifar10()
+    resnet30.train_cifar10()
+
+    print('##### Training resnet20 ##### ')
+    trimmer = Trimmer('./resnet/results/30_1', './resnet/configs/20.json')
+    trimmer.trim()
+    resnet20 = ResNet50.init_from_folder('./resnet/trimmed_models/20')
+    resnet20.eval_cifar10()
+    resnet20.train_cifar10()
 
     # trim_config_path = "./resnet/configs/90.json"
     # with open(trim_config_path) as config_buffer:
