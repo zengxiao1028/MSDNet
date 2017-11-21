@@ -411,7 +411,8 @@ class FrozenConv2D(Conv2D):
                                                   initializer=self.kernel_initializer,
                                                   name='aug_dim_kernel',
                                                   regularizer=self.kernel_regularizer,
-                                                  constraint=self.kernel_constraint
+                                                  constraint=self.kernel_constraint,
+                                                  trainable=True if self.aug_dim > 0 else False,
                                                   )
 
 
@@ -422,7 +423,8 @@ class FrozenConv2D(Conv2D):
                                           initializer=self.kernel_initializer,
                                           name='aug_filter_kernel',
                                           regularizer=self.kernel_regularizer,
-                                          constraint=self.kernel_constraint
+                                          constraint=self.kernel_constraint,
+                                          trainable= True if self.aug_filters > 0 else False
                                           )
 
 
@@ -438,7 +440,8 @@ class FrozenConv2D(Conv2D):
                                         initializer=self.bias_initializer,
                                         name='aug_bias',
                                         regularizer=self.bias_regularizer,
-                                        constraint=self.bias_constraint)
+                                        constraint=self.bias_constraint,
+                                        trainable=True if self.aug_filters > 0 else False)
 
 
         else:
@@ -513,7 +516,8 @@ class FrozenDense(Dense):
                                       initializer=self.kernel_initializer,
                                       name='aug_dim_kernel',
                                       regularizer=self.kernel_regularizer,
-                                      constraint=self.kernel_constraint)
+                                      constraint=self.kernel_constraint,
+                                      trainable=True if self.aug_dim >0 else False )
 
         if self.use_bias:
             self.bias = self.add_weight(shape=(self.units,),
@@ -636,5 +640,5 @@ class FrozenBatchNormalization(BatchNormalization):
 if __name__ == '__main__':
 
     resnet = FrozenResNet50(config_path= './resnet/configs/30.json', frozen_model_config_path= './resnet/configs/20.json')
-    resnet.load_frozen_aug_weights('./resnet/results/20_1')
+    #resnet.load_frozen_aug_weights('./resnet/results/20_1')
     resnet.train_cifar10(training_save_dir='./resnet/recover_results/')
