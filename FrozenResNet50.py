@@ -119,17 +119,23 @@ class FrozenResNet50(ResNet50):
         if type == 'conv':
             if len(frozen_weights) == 2:#  kernel, bias
                 return frozen_weights
+            elif len(frozen_weights) == 3:# aug_dim, kernel, bias
+                w = np.concatenate((frozen_weights[1], frozen_weights[0]), axis=2)
+                b = np.frozen_weights[2]
+                return [w, b]
+            elif len(frozen_weights) == 4:  # aug_filter, aug_bias, kernel, bias
+                w = np.concatenate((frozen_weights[2], frozen_weights[0]), axis=3)
+                b = np.concatenate((frozen_weights[3], frozen_weights[1]), axis=0)
+                return [w, b]
             elif len(frozen_weights) == 5:# aug_dim, aug_filter, aug_bias, kernel, bias
-
                 w = np.concatenate( (frozen_weights[3],frozen_weights[0]), axis=2)
                 w = np.concatenate((w, frozen_weights[1]), axis=3)
-                b = np.concatenate((frozen_weights[4], frozen_weights[2]), axis=3)
+                b = np.concatenate((frozen_weights[4], frozen_weights[2]), axis=0)
                 return [w,b]
             else:
                 raise ValueError("Unsupported number of weights %d" % len(frozen_weights))
 
         elif type == 'fc':
-
             if len(frozen_weights) == 2:#  kernel, bias
                 return frozen_weights
             elif len(frozen_weights) == 3:# aug_dim, kernel, bias
@@ -405,7 +411,7 @@ class FrozenConv2D(Conv2D):
                                       )
 
         self.aug_dim = input_dim - self.frozen_dim
-        if self.aug_dim >= 0:
+        if self.aug_dim > 0:
             aug_dim_kernel_shape = self.kernel_size + (self.aug_dim, self.frozen_filters)
             self.aug_dim_kernel = self.add_weight(shape=aug_dim_kernel_shape,
                                                   initializer=self.kernel_initializer,
@@ -417,7 +423,7 @@ class FrozenConv2D(Conv2D):
 
 
         self.aug_filters = self.filters - self.frozen_filters
-        if self.aug_filters >= 0:
+        if self.aug_filters > 0:
             aug_filter_kernel_shape = self.kernel_size + (input_dim, self.aug_filters)
             self.aug_filter_kernel = self.add_weight(shape=aug_filter_kernel_shape,
                                           initializer=self.kernel_initializer,
@@ -435,7 +441,7 @@ class FrozenConv2D(Conv2D):
                                         regularizer=self.bias_regularizer,
                                         constraint=self.bias_constraint,
                                         trainable=False)
-            if self.aug_filters >= 0:
+            if self.aug_filters > 0:
                 self.aug_bias = self.add_weight(shape=(self.aug_filters,),
                                         initializer=self.bias_initializer,
                                         name='aug_bias',
@@ -511,7 +517,7 @@ class FrozenDense(Dense):
                                       trainable=False)
 
         self.aug_dim = input_dim - self.frozen_dim
-        if self.aug_dim >= 0 :
+        if self.aug_dim > 0 :
             self.aug_dim_kernel = self.add_weight(shape=(self.aug_dim, self.units),
                                       initializer=self.kernel_initializer,
                                       name='aug_dim_kernel',
