@@ -640,5 +640,5 @@ class FrozenBatchNormalization(BatchNormalization):
 if __name__ == '__main__':
 
     resnet = FrozenResNet50(config_path= './resnet/configs/30.json', frozen_model_config_path= './resnet/configs/20.json')
-    #resnet.load_frozen_aug_weights('./resnet/results/20_1')
+    resnet.load_frozen_aug_weights('./resnet/results/20_1')
     resnet.train_cifar10(training_save_dir='./resnet/recover_results/')
