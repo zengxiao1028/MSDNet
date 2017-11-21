@@ -243,8 +243,8 @@ class FrozenResNet50(ResNet50):
         else:
             bn_axis = 1
 
-        x = Conv2D(
-            filters_config[0][0], (7, 7), strides=(2, 2), padding='same', name='conv1')(img_input)
+        x = self.conv2d(
+            filters_config[0][0], (7, 7), frozen_dim=0, frozen_filters=frozen_filters_config[0][0], strides=(2, 2), padding='same', name='conv1')(img_input)
         x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
         x = Activation('relu')(x)
         x = MaxPooling2D((3, 3), strides=(2, 2))(x)
@@ -349,7 +349,8 @@ class FrozenConv2D(Conv2D):
                  dilation_rate=(1, 1),
                  activation=None,
                  use_bias=True,
-                 kernel_initializer='glorot_uniform',
+                 #kernel_initializer='glorot_uniform',
+                 kernel_initializer=keras.initializers.zeros,
                  bias_initializer='zeros',
                  kernel_regularizer=None,
                  bias_regularizer=None,
