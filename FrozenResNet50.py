@@ -72,18 +72,21 @@ class FrozenResNet50(ResNet50):
 
         for idx, layer in enumerate(self.model.layers):
 
+            weights = layer.get_weights()
             if isinstance(layer,FrozenConv2D) :
-                weights = layer.get_weights()
-                print(len(weights))
+
                 frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'conv')
 
                 layer.set_weights( weights[:-2] + frozen_weights )
 
             elif isinstance(layer,FrozenDense) :
-                weights = layer.get_weights()
-                print(len(weights))
+
+
                 frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'fc')
                 layer.set_weights( weights[:-2] + frozen_weights )
+
+            else:
+                layer.set_weights(weights)
 
 
 
