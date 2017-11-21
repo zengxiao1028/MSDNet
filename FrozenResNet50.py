@@ -1,7 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
-from keras.layers import Conv2D,BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense
+from keras.layers import BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense,Conv2D
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
 from keras.models import Model
@@ -25,64 +25,127 @@ WEIGHTS_PATH_NO_TOP = 'https://github.com/fchollet/deep-learning-models/releases
 from keras.legacy import interfaces
 from keras.engine.topology import InputSpec
 from ResNet50 import ResNet50
-
+from keras.models import load_model
 class FrozenResNet50(ResNet50):
 
-    def __init__(self, config_path, weights_path = None ):
+
+    def __init__(self, config_path, frozen_model_config_path, weights_path = None):
 
         assert os.path.exists(config_path)
-
+        self.conv2d = FrozenConv2D
+        self.dense = FrozenDense
         self.config_path = config_path
+
+        # obtain frozen configs
+        self.frozen_dim_filters = self._obtain_frozen_dim_filters(frozen_model_config_path)
+
         with open(config_path) as config_buffer:
             self.config = json.load(config_buffer)
 
         if weights_path is not None:
             self.model = self._resNet50(self.config['model']['filters'],
+                                        self.frozen_dim_filters[0], ## frozen dim
+                                        self.frozen_dim_filters[1], ## frozen filter
                                         include_top=self.config['model']['include_top'],
                                         weights=None,
                                         classes=self.config['model']['classes'],
                                         model_name=self.config['model']['name'])
             self.model.load_weights(weights_path)
-        elif self.config['model']['weights'] in {'imagenet', None}:
-            self.model = self._resNet50(self.config['model']['filters'],
-                                        include_top=self.config['model']['include_top'],
-                                        weights=self.config['model']['weights'],
-                                        classes=self.config['model']['classes'],
-                                        model_name=self.config['model']['name'])
+
+        ## read model from config
+        elif self.config['model']['weights'] in {'imagenet'}:
+            raise ValueError('imagenet weights do not support frozen layer.')
         else:
             self.model = self._resNet50(self.config['model']['filters'],
+                                        self.frozen_dim_filters[0],  ## frozen dim
+                                        self.frozen_dim_filters[1],  ## frozen filter
                                         include_top=self.config['model']['include_top'],
                                         weights=None,
                                         classes=self.config['model']['classes'],
                                         model_name=self.config['model']['name'])
-            if self.config['model']['weights'] != "":
-                self.model.load_weights(self.model.load_weights(self.config['model']['weights']))
+            if self.config['model']['weights'] is not None and self.config['model']['weights'] != "" :
+                self.model.load_weights(self.config['model']['weights'])
 
-    @classmethod
-    def init_from_folder(cls,folder_path):
-        original_config_paths = glob.glob(os.path.join(folder_path, '*.json'))
-        assert len(original_config_paths) == 1
+    def load_frozen_aug_weights(self, frozen_model_path , aug_weights_path = None ):
+        frozen_model = load_model(frozen_model_path)
+        assert len(frozen_model.layers) == len(self.model.layers)
 
-        original_config_path = original_config_paths[0]
-        with open(original_config_path) as config_buffer:
-            config = json.load(config_buffer)
+        for idx, layer in enumerate(self.model.layers):
 
-        resnet = cls(original_config_path,
-                          os.path.join(folder_path, config['model']['name'] + '.h5'))
-        return resnet
+            if isinstance(layer,FrozenConv2D) :
+                weights = layer.get_weights()
+                print(len(weights))
+                frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'conv')
 
-    def identity_block(self,input_tensor, kernel_size, filters, stage, block):
-        """The identity block is the block that has no conv layer at shortcut.
-        # Arguments
-            input_tensor: input tensor
-            kernel_size: default 3, the kernel size of middle conv layer at main path
-            filters: list of integers, the filters of 3 conv layer at main path
-            stage: integer, current stage label, used for generating layer names
-            block: 'a','b'..., current block label, used for generating layer names
-        # Returns
-            Output tensor for the block.
-        """
+                layer.set_weights( weights[:-2] + frozen_weights )
+
+            elif isinstance(layer,FrozenDense) :
+                weights = layer.get_weights()
+                print(len(weights))
+                frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'fc')
+                layer.set_weights( weights[:-2] + frozen_weights )
+
+
+
+    def _obtain_frozen_dim_filters(self, frozen_model_config_path):
+        with open(frozen_model_config_path) as config_buffer:
+            frozen_config = json.load(config_buffer)
+
+        frozen_model_dim = np.array(frozen_config['model']['filters'])
+        frozen_model_dim[0][2] = frozen_model_dim[0][0]
+
+        frozen_model_dim = np.roll(frozen_model_dim, 1)
+
+        frozen_model_dim = frozen_model_dim[[i for i in range(1,frozen_model_dim.shape[0])] +[0]]
+        frozen_model_dim[-1][1] = 0
+        return frozen_model_dim, np.array(frozen_config['model']['filters'])
+
+    def _combine_frozen_weight(self, frozen_weights, type):
+
+        if type not in {'conv','fc'}:
+            raise ValueError("must be 'conv' or 'fc'")
+        if type == 'conv':
+            if len(frozen_weights) == 2:#  kernel, bias
+                return frozen_weights
+            elif len(frozen_weights) == 5:# aug_dim, aug_filter, aug_bias, kernel, bias
+
+                w = np.concatenate( (frozen_weights[3],frozen_weights[0]), axis=2)
+                w = np.concatenate((w, frozen_weights[1]), axis=3)
+                b = np.concatenate((frozen_weights[4], frozen_weights[2]), axis=3)
+                return [w,b]
+            else:
+                raise ValueError("Unsupported number of weights %d" % len(frozen_weights))
+
+        elif type == 'fc':
+
+            if len(frozen_weights) == 2:#  kernel, bias
+                return frozen_weights
+            elif len(frozen_weights) == 3:# aug_dim, kernel, bias
+                w = np.concatenate( (frozen_weights[1],frozen_weights[0]), axis=2)
+                b = frozen_weights[2]
+                return [w,b]
+            else:
+                raise ValueError("Unsupported number of weights %d" % len(frozen_weights))
+        else:
+            raise NotImplementedError("Unsupport layer %s" % type)
+    # @classmethod
+    # def init_from_folder(cls,folder_path):
+    #     original_config_paths = glob.glob(os.path.join(folder_path, '*.json'))
+    #     assert len(original_config_paths) == 1
+    #
+    #     original_config_path = original_config_paths[0]
+    #     with open(original_config_path) as config_buffer:
+    #         config = json.load(config_buffer)
+    #
+    #     resnet = cls(original_config_path,
+    #                       os.path.join(folder_path, config['model']['name'] + '.h5'))
+    #     return resnet
+
+    def identity_block(self,input_tensor, kernel_size, filters, frozen_dim, frozen_filters, stage, block):
+
         filters1, filters2, filters3 = filters
+        frozen_dim1, frozen_dim2, frozen_dim3 = frozen_dim
+        frozen_filers1, frozen_filers2, frozen_filers3 = frozen_filters
         if K.image_data_format() == 'channels_last':
             bn_axis = 3
         else:
@@ -90,36 +153,27 @@ class FrozenResNet50(ResNet50):
         conv_name_base = 'res' + str(stage) + block + '_branch'
         bn_name_base = 'bn' + str(stage) + block + '_branch'
 
-        x = Conv2D(filters1, (1, 1), name=conv_name_base + '2a')(input_tensor)
+        x = self.conv2d(filters1,  (1, 1), frozen_dim= frozen_dim1, frozen_filters=frozen_filers1, name=conv_name_base + '2a')(input_tensor)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
         x = Activation('relu')(x)
 
-        x = Conv2D(filters2, kernel_size,
+        x = self.conv2d(filters2, kernel_size, frozen_dim=frozen_dim2, frozen_filters=frozen_filers2,
                    padding='same', name=conv_name_base + '2b')(x)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
         x = Activation('relu')(x)
 
-        x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c')(x)
+        x = self.conv2d(filters3, (1, 1), frozen_dim=frozen_dim3, frozen_filters=frozen_filers3, name=conv_name_base + '2c')(x)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
 
         x = layers.add([x, input_tensor])
         x = Activation('relu')(x)
         return x
 
-    def conv_block(self,input_tensor, kernel_size, filters, stage, block, strides=(2, 2)):
-        """A block that has a conv layer at shortcut.
-        # Arguments
-            input_tensor: input tensor
-            kernel_size: default 3, the kernel size of middle conv layer at main path
-            filters: list of integers, the filters of 3 conv layer at main path
-            stage: integer, current stage label, used for generating layer names
-            block: 'a','b'..., current block label, used for generating layer names
-        # Returns
-            Output tensor for the block.
-        Note that from stage 3, the first conv layer at main path is with strides=(2,2)
-        And the shortcut should have strides=(2,2) as well
-        """
+    def conv_block(self,input_tensor, kernel_size, filters, frozen_dim, frozen_filters, stage, block, strides=(2, 2)):
+
         filters1, filters2, filters3 = filters
+        frozen_dim1, frozen_dim2, frozen_dim3 = frozen_dim
+        frozen_filers1, frozen_filers2, frozen_filers3 = frozen_filters
         if K.image_data_format() == 'channels_last':
             bn_axis = 3
         else:
@@ -127,20 +181,20 @@ class FrozenResNet50(ResNet50):
         conv_name_base = 'res' + str(stage) + block + '_branch'
         bn_name_base = 'bn' + str(stage) + block + '_branch'
 
-        x = Conv2D(filters1, (1, 1), strides=strides,
+        x = self.conv2d(filters1,  (1, 1), frozen_dim=frozen_dim1, frozen_filters=frozen_filers1, strides=strides,
                    name=conv_name_base + '2a')(input_tensor)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
         x = Activation('relu')(x)
 
-        x = Conv2D(filters2, kernel_size, padding='same',
+        x = self.conv2d(filters2, kernel_size, frozen_dim = frozen_dim2, frozen_filters=frozen_filers2, padding='same',
                    name=conv_name_base + '2b')(x)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
         x = Activation('relu')(x)
 
-        x = Conv2D(filters3, (1, 1), name=conv_name_base + '2c')(x)
+        x = self.conv2d(filters3, (1, 1), frozen_dim = frozen_dim3, frozen_filters=frozen_filers3, name=conv_name_base + '2c')(x)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
 
-        shortcut = Conv2D(filters3, (1, 1), strides=strides,
+        shortcut = self.conv2d(filters3, (1, 1), frozen_dim = frozen_dim1, frozen_filters=frozen_filers3, strides=strides,
                           name=conv_name_base + '1')(input_tensor)
         shortcut = BatchNormalization(axis=bn_axis, name=bn_name_base + '1')(shortcut)
 
@@ -148,62 +202,10 @@ class FrozenResNet50(ResNet50):
         x = Activation('relu')(x)
         return x
 
-    def _resNet50(self, filters_config, include_top=True, weights='imagenet',
+    def _resNet50(self, filters_config, frozen_dim_configs, frozen_filters_config , include_top=True, weights='imagenet',
                   input_tensor=None, input_shape=None,
                   pooling=None,
                   classes=1000, model_name='resnet50'):
-        """Instantiates the ResNet50 architecture.
-        Optionally loads weights pre-trained
-        on ImageNet. Note that when using TensorFlow,
-        for best performance you should set
-        `image_data_format='channels_last'` in your Keras config
-        at ~/.keras/keras.json.
-        The model and the weights are compatible with both
-        TensorFlow and Theano. The data format
-        convention used by the model is the one
-        specified in your Keras config file.
-        # Arguments
-            include_top: whether to include the fully-connected
-                layer at the top of the network.
-            weights: one of `None` (random initialization)
-                or 'imagenet' (pre-training on ImageNet).
-            input_tensor: optional Keras tensor (i.e. output of `layers.Input()`)
-                to use as image input for the model.
-            input_shape: optional shape tuple, only to be specified
-                if `include_top` is False (otherwise the input shape
-                has to be `(224, 224, 3)` (with `channels_last` data format)
-                or `(3, 224, 224)` (with `channels_first` data format).
-                It should have exactly 3 inputs channels,
-                and width and height should be no smaller than 197.
-                E.g. `(200, 200, 3)` would be one valid value.
-            pooling: Optional pooling mode for feature extraction
-                when `include_top` is `False`.
-                - `None` means that the output of the model will be
-                    the 4D tensor output of the
-                    last convolutional layer.
-                - `avg` means that global average pooling
-                    will be applied to the output of the
-                    last convolutional layer, and thus
-                    the output of the model will be a 2D tensor.
-                - `max` means that global max pooling will
-                    be applied.
-            classes: optional number of classes to classify images
-                into, only to be specified if `include_top` is True, and
-                if no `weights` argument is specified.
-        # Returns
-            A Keras model instance.
-        # Raises
-            ValueError: in case of invalid argument for `weights`,
-                or invalid input shape.
-        """
-        if weights not in {'imagenet', None}:
-            raise ValueError('The `weights` argument should be either '
-                             '`None` (random initialization) or `imagenet` '
-                             '(pre-training on ImageNet).')
-
-        #if weights == 'imagenet' and include_top and classes != 1000:
-        #    raise ValueError('If using `weights` as imagenet with `include_top`'
-        #                     ' as true, `classes` should be 1000')
 
         # Determine proper input shape
         input_shape = _obtain_input_shape(input_shape,
@@ -231,31 +233,31 @@ class FrozenResNet50(ResNet50):
         x = Activation('relu')(x)
         x = MaxPooling2D((3, 3), strides=(2, 2))(x)
 
-        x = self.conv_block(x, 3, filters_config[1], stage=2, block='a', strides=(1, 1))
-        x = self.identity_block(x, 3, filters_config[2], stage=2, block='b')
-        x = self.identity_block(x, 3, filters_config[3], stage=2, block='c')
+        x = self.conv_block(x, 3, filters_config[1], frozen_dim_configs[0], frozen_filters_config[1], stage=2, block='a', strides=(1, 1))
+        x = self.identity_block(x, 3, filters_config[2],frozen_dim_configs[1], frozen_filters_config[2], stage=2, block='b')
+        x = self.identity_block(x, 3, filters_config[3],frozen_dim_configs[2], frozen_filters_config[3], stage=2, block='c')
 
-        x = self.conv_block(x, 3, filters_config[4], stage=3, block='a')
-        x = self.identity_block(x, 3, filters_config[5], stage=3, block='b')
-        x = self.identity_block(x, 3, filters_config[6], stage=3, block='c')
-        x = self.identity_block(x, 3, filters_config[7], stage=3, block='d')
+        x = self.conv_block(x, 3, filters_config[4], frozen_dim_configs[3], frozen_filters_config[4], stage=3, block='a')
+        x = self.identity_block(x, 3, filters_config[5],frozen_dim_configs[4], frozen_filters_config[5], stage=3, block='b')
+        x = self.identity_block(x, 3, filters_config[6],frozen_dim_configs[5], frozen_filters_config[6], stage=3, block='c')
+        x = self.identity_block(x, 3, filters_config[7],frozen_dim_configs[6], frozen_filters_config[7], stage=3, block='d')
 
-        x = self.conv_block(x, 3, filters_config[8], stage=4, block='a')
-        x = self.identity_block(x, 3, filters_config[9], stage=4, block='b')
-        x = self.identity_block(x, 3, filters_config[10], stage=4, block='c')
-        x = self.identity_block(x, 3, filters_config[11], stage=4, block='d')
-        x = self.identity_block(x, 3, filters_config[12], stage=4, block='e')
-        x = self.identity_block(x, 3, filters_config[13], stage=4, block='f')
+        x = self.conv_block(x, 3, filters_config[8],frozen_dim_configs[7], frozen_filters_config[8], stage=4, block='a')
+        x = self.identity_block(x, 3, filters_config[9],frozen_dim_configs[8], frozen_filters_config[9], stage=4, block='b')
+        x = self.identity_block(x, 3, filters_config[10],frozen_dim_configs[9], frozen_filters_config[10], stage=4, block='c')
+        x = self.identity_block(x, 3, filters_config[11],frozen_dim_configs[10], frozen_filters_config[11], stage=4, block='d')
+        x = self.identity_block(x, 3, filters_config[12],frozen_dim_configs[11], frozen_filters_config[12], stage=4, block='e')
+        x = self.identity_block(x, 3, filters_config[13],frozen_dim_configs[12], frozen_filters_config[13], stage=4, block='f')
 
-        x = self.conv_block(x, 3, filters_config[14], stage=5, block='a')
-        x = self.identity_block(x, 3, filters_config[15], stage=5, block='b')
-        x = self.identity_block(x, 3, filters_config[16], stage=5, block='c')
+        x = self.conv_block(x, 3, filters_config[14],frozen_dim_configs[13], frozen_filters_config[14], stage=5, block='a')
+        x = self.identity_block(x, 3, filters_config[15],frozen_dim_configs[14], frozen_filters_config[15], stage=5, block='b')
+        x = self.identity_block(x, 3, filters_config[16],frozen_dim_configs[15], frozen_filters_config[16], stage=5, block='c')
 
         x = AveragePooling2D((7, 7), name='avg_pool')(x)
 
         if include_top:
             x = Flatten()(x)
-            x = Dense(classes, activation='softmax', name='fc1000')(x)
+            x = self.dense(classes, frozen_dim=frozen_dim_configs[-1][0], activation='softmax', name='fc1000')(x)
         else:
             if pooling == 'avg':
                 x = GlobalAveragePooling2D()(x)
@@ -322,9 +324,9 @@ class FrozenConv2D(Conv2D):
 
     @interfaces.legacy_conv2d_support
     def __init__(self, filters,
-                 frozen_dim,  ## nb of dim we need to freeze
-                 frozen_filters,  ## nb of filters we need to freeze
                  kernel_size,
+                 frozen_dim=0,  ## nb of dim we need to freeze
+                 frozen_filters=0,  ## nb of filters we need to freeze
                  strides=(1, 1),
                  padding='valid',
                  data_format=None,
@@ -391,7 +393,7 @@ class FrozenConv2D(Conv2D):
                                       )
 
         self.aug_dim = input_dim - self.frozen_dim
-        if self.aug_dim > 0:
+        if self.aug_dim >= 0:
             aug_dim_kernel_shape = self.kernel_size + (self.aug_dim, self.frozen_filters)
             self.aug_dim_kernel = self.add_weight(shape=aug_dim_kernel_shape,
                                                   initializer=self.kernel_initializer,
@@ -402,7 +404,7 @@ class FrozenConv2D(Conv2D):
 
 
         self.aug_filters = self.filters - self.frozen_filters
-        if self.aug_filters > 0:
+        if self.aug_filters >= 0:
             aug_filter_kernel_shape = self.kernel_size + (input_dim, self.aug_filters)
             self.aug_filter_kernel = self.add_weight(shape=aug_filter_kernel_shape,
                                           initializer=self.kernel_initializer,
@@ -419,7 +421,7 @@ class FrozenConv2D(Conv2D):
                                         regularizer=self.bias_regularizer,
                                         constraint=self.bias_constraint,
                                         trainable=False)
-            if self.aug_filters > 0:
+            if self.aug_filters >= 0:
                 self.aug_bias = self.add_weight(shape=(self.aug_filters,),
                                         initializer=self.bias_initializer,
                                         name='aug_bias',
@@ -453,7 +455,7 @@ class FrozenDense(Dense):
 
     @interfaces.legacy_dense_support
     def __init__(self, units,
-                 frozen_dim, # right now it only supports frozen_dim. Frozen_units will be supported in the future.
+                 frozen_dim=0, # right now it only supports frozen_dim. Frozen_units will be supported in the future.
                  activation=None,
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
@@ -494,7 +496,7 @@ class FrozenDense(Dense):
                                       trainable=False)
 
         self.aug_dim = input_dim - self.frozen_dim
-        if self.aug_dim > 0 :
+        if self.aug_dim >= 0 :
             self.aug_dim_kernel = self.add_weight(shape=(self.aug_dim, self.units),
                                       initializer=self.kernel_initializer,
                                       name='aug_dim_kernel',
@@ -619,5 +621,6 @@ class FrozenBatchNormalization(BatchNormalization):
 
 
 if __name__ == '__main__':
-    pass
-
+    resnet = FrozenResNet50('./resnet/configs/30.json','./resnet/configs/20.json')
+    resnet.load_frozen_aug_weights("")
+    #resnet.train_cifar10()
