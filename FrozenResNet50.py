@@ -90,7 +90,6 @@ class FrozenResNet50(ResNet50):
 
             elif type(layer) is FrozenDense :
 
-
                 frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'fc')
                 layer.set_weights( weights[:-2] + frozen_weights )
 
@@ -286,7 +285,7 @@ class FrozenResNet50(ResNet50):
 
         # Create model.
         model = Model(inputs, x, name=model_name)
-        model.layers[-1].get_weights()
+        l = model.layers[-1].get_weights()
 
         # load weights
         if weights == 'imagenet':
@@ -521,7 +520,8 @@ class FrozenDense(Dense):
                                         initializer=self.bias_initializer,
                                         name='bias',
                                         regularizer=self.bias_regularizer,
-                                        constraint=self.bias_constraint)
+                                        constraint=self.bias_constraint,
+                                        trainable=False)
         else:
             self.bias = None
         self.input_spec = InputSpec(min_ndim=2, axes={-1: input_dim})
@@ -637,4 +637,4 @@ if __name__ == '__main__':
 
     resnet = FrozenResNet50(config_path= './resnet/configs/30.json', frozen_model_config_path= './resnet/configs/20.json')
     resnet.load_frozen_aug_weights('./resnet/results/20_1')
-    resnet.train_cifar10()
+    resnet.train_cifar10(training_save_dir='./resnet/recover_results/')

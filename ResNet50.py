@@ -438,7 +438,7 @@ class ResNet50(object):
 
         return last_pos
 
-    def train_cifar10(self):
+    def train_cifar10(self, training_save_dir = './resnet/results'):
 
         def resize(gen):
             """
@@ -474,7 +474,6 @@ class ResNet50(object):
         self.model.compile(opt,loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         self.model.summary()
         #### prepare training ########
-        training_save_dir = './resnet/results'
         name = self.model.name
         os.makedirs(training_save_dir,exist_ok=True)
         result_counter = len([log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
