@@ -83,7 +83,6 @@ class FrozenResNet50(ResNet50):
             weights = layer.get_weights()
             print('loading weight for layer %s' % layer.name)
             if type(layer) is FrozenConv2D :
-                pass
                 frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'conv')
 
                 layer.set_weights( weights[:-2] + frozen_weights )
@@ -94,7 +93,6 @@ class FrozenResNet50(ResNet50):
                 layer.set_weights( weights[:-2] + frozen_weights )
 
             else:
-                pass
                 layer.set_weights(weights)
 
 
