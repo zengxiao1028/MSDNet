@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 from keras.layers import BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense,Conv2D
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -66,26 +66,36 @@ class FrozenResNet50(ResNet50):
             if self.config['model']['weights'] is not None and self.config['model']['weights'] != "" :
                 self.model.load_weights(self.config['model']['weights'])
 
-    def load_frozen_aug_weights(self, frozen_model_path , aug_weights_path = None ):
+    def load_frozen_aug_weights(self, frozen_model_folder , aug_weights_path = None ):
+        original_config_paths = glob.glob(os.path.join(frozen_model_folder, '*.json'))
+        assert len(original_config_paths) == 1
+
+        original_config_path = original_config_paths[0]
+        with open(original_config_path) as config_buffer:
+            config = json.load(config_buffer)
+
+        frozen_model_path = os.path.join(frozen_model_folder, config['model']['name'] + '.h5')
         frozen_model = load_model(frozen_model_path)
         assert len(frozen_model.layers) == len(self.model.layers)
 
         for idx, layer in enumerate(self.model.layers):
 
             weights = layer.get_weights()
-            if isinstance(layer,FrozenConv2D) :
-
+            print('loading weight for layer %s' % layer.name)
+            if type(layer) is FrozenConv2D :
+                pass
                 frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'conv')
 
                 layer.set_weights( weights[:-2] + frozen_weights )
 
-            elif isinstance(layer,FrozenDense) :
+            elif type(layer) is FrozenDense :
 
 
                 frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'fc')
                 layer.set_weights( weights[:-2] + frozen_weights )
 
             else:
+                pass
                 layer.set_weights(weights)
 
 
@@ -276,7 +286,7 @@ class FrozenResNet50(ResNet50):
 
         # Create model.
         model = Model(inputs, x, name=model_name)
-
+        model.layers[-1].get_weights()
 
         # load weights
         if weights == 'imagenet':
@@ -624,6 +634,7 @@ class FrozenBatchNormalization(BatchNormalization):
 
 
 if __name__ == '__main__':
-    resnet = FrozenResNet50('./resnet/configs/30.json','./resnet/configs/20.json')
-    resnet.load_frozen_aug_weights("")
-    #resnet.train_cifar10()
+
+    resnet = FrozenResNet50(config_path= './resnet/configs/30.json', frozen_model_config_path= './resnet/configs/20.json')
+    resnet.load_frozen_aug_weights('./resnet/results/20_1')
+    resnet.train_cifar10()
