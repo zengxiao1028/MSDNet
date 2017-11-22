@@ -678,10 +678,7 @@ class Trimmer(object):
         keras.backend.clear_session()
 
 
-
-if __name__ == '__main__':
-
-
+def main_cifar10():
     # resnet100 = ResNet50('./resnet/configs/100.json')
     #
     # print('##### Training resnet90 #####')
@@ -781,8 +778,6 @@ if __name__ == '__main__':
     # print(resnet2.trimfrom)
 
 
-
-
     #
     # config_path = './resnet/voc2007_config.json'
     # with open(config_path) as config_buffer:
@@ -796,3 +791,97 @@ if __name__ == '__main__':
     # x = preprocess_input(x)
     # preds = resnet1.model.predict(x)
     # print('Predicted:', decode_predictions(preds))
+
+def main_imagenet():
+
+    resnet100 = ResNet50('./resnet/configs/100.json')
+    resnet100.eval_imagenet()
+    #
+    # print('##### Training resnet90 #####')
+    # trimmer = Trimmer('./resnet/results/100_1','./resnet/configs/90.json')
+    # trimmer.trim()
+    # resnet90 = ResNet50.init_from_folder('./resnet/trimmed_models/90')
+    # resnet90.eval_cifar10()
+    # resnet90.train_cifar10()
+    #
+    # print('##### Training resnet80 #####')
+    # trimmer = Trimmer('./resnet/results/90_1', './resnet/configs/80.json')
+    # trimmer.trim()
+    # resnet80 = ResNet50.init_from_folder('./resnet/trimmed_models/80')
+    # resnet80.eval_cifar10()
+    # resnet80.train_cifar10()
+    #
+    # print('##### Training resnet70 ##### ')
+    # trimmer = Trimmer('./resnet/results/80_1', './resnet/configs/70.json')
+    # trimmer.trim()
+    # resnet70 = ResNet50.init_from_folder('./resnet/trimmed_models/70')
+    # resnet70.eval_cifar10()
+    # resnet70.train_cifar10()
+    #
+    # print('##### Training resnet60 ##### ')
+    # trimmer = Trimmer('./resnet/results/70_1', './resnet/configs/60.json')
+    # trimmer.trim()
+    # resnet60 = ResNet50.init_from_folder('./resnet/trimmed_models/60')
+    # resnet60.eval_cifar10()
+    # resnet60.train_cifar10()
+    #
+    # print('##### Training resnet50 ##### ')
+    # trimmer = Trimmer('./resnet/results/60_1', './resnet/configs/50.json')
+    # trimmer.trim()
+    # resnet50 = ResNet50.init_from_folder('./resnet/trimmed_models/50')
+    # resnet50.eval_cifar10()
+    # resnet50.train_cifar10()
+    #
+    # print('##### Training resnet40 ##### ')
+    # trimmer = Trimmer('./resnet/results/50_1', './resnet/configs/40.json')
+    # trimmer.trim()
+    # resnet40 = ResNet50.init_from_folder('./resnet/trimmed_models/40')
+    # resnet40.eval_cifar10()
+    # resnet40.train_cifar10()
+    #
+    # print('##### Training resnet30 ##### ')
+    # trimmer = Trimmer('./resnet/results/40_1', './resnet/configs/30.json')
+    # trimmer.trim()
+    # resnet30 = ResNet50.init_from_folder('./resnet/trimmed_models/30')
+    # resnet30.eval_cifar10()
+    # resnet30.train_cifar10()
+    #
+    # print('##### Training resnet20 ##### ')
+    # trimmer = Trimmer('./resnet/results/30_1', './resnet/configs/20.json')
+    # trimmer.trim()
+    # resnet20 = ResNet50.init_from_folder('./resnet/trimmed_models/20')
+    # resnet20.eval_cifar10()
+    # resnet20.train_cifar10()
+    #
+    # print('##### Training resnet10 ##### ')
+    # trimmer = Trimmer('./resnet/results/20_1', './resnet/configs/10.json')
+    # trimmer.trim()
+    # resnet10 = ResNet50.init_from_folder('./resnet/trimmed_models/10')
+    # resnet10.eval_cifar10()
+    # resnet10.train_cifar10()
+    #
+    # print('##### Training resnet0 ##### ')
+    # trimmer = Trimmer('./resnet/results/10_1', './resnet/configs/0.json')
+    # trimmer.trim()
+    # resnet0 = ResNet50.init_from_folder('./resnet/trimmed_models/0')
+    # resnet0.eval_cifar10()
+    # resnet0.train_cifar10()
+    #
+    # print('##### Training resnetb0 ##### ')
+    # trimmer = Trimmer('./resnet/results/0_1', './resnet/configs/b0.json')
+    # trimmer.trim()
+    # resnetb0 = ResNet50.init_from_folder('./resnet/trimmed_models/b0')
+    # resnetb0.eval_cifar10()
+    # resnetb0.train_cifar10()
+    #
+    # print('##### Training resnetb20 ##### ')
+    # trimmer = Trimmer('./resnet/results/b10_1', './resnet/configs/b20.json')
+    # trimmer.trim()
+    # resnetb20 = ResNet50.init_from_folder('./resnet/trimmed_models/b20')
+    # resnetb20.eval_cifar10()
+    # resnetb20.train_cifar10()
+
+
+if __name__ == '__main__':
+    main_cifar10()
+
