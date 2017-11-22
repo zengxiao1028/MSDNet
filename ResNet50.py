@@ -675,12 +675,12 @@ if __name__ == '__main__':
     # resnetb0.eval_cifar10()
     # resnetb0.train_cifar10()
 
-    print('##### Training resnetb10 ##### ')
-    trimmer = Trimmer('./resnet/results/b0_1', './resnet/configs/b10.json')
+    print('##### Training resnetb20 ##### ')
+    trimmer = Trimmer('./resnet/results/b10_1', './resnet/configs/b20.json')
     trimmer.trim()
-    resnetb10 = ResNet50.init_from_folder('./resnet/trimmed_models/b10')
-    resnetb10.eval_cifar10()
-    resnetb10.train_cifar10()
+    resnetb20 = ResNet50.init_from_folder('./resnet/trimmed_models/b20')
+    resnetb20.eval_cifar10()
+    resnetb20.train_cifar10()
 
     # trim_config_path = "./resnet/configs/90.json"
     # with open(trim_config_path) as config_buffer:
