@@ -537,6 +537,93 @@ class ResNet50(object):
         return evaluation
 
 
+    def train_imagenet(self, training_save_dir='./resnet/imagenet/results'):
+
+        ### prepare dataset #####
+        (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+
+        train_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input,
+            shear_range=0.1,
+            horizontal_flip=True,
+            rotation_range=30.,
+            width_shift_range=0.1,
+            height_shift_range=0.1)
+
+        train_generator = train_datagen.flow_from_directory(
+            './dataset/imagenet/train/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
+
+
+
+        val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+
+        validation_generator = val_datagen.flow_from_directory(
+            './dataset/imagenet/valid/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
+
+        #### comppile model ########
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        self.model.summary()
+        #### prepare training ########
+        name = self.model.name
+        os.makedirs(training_save_dir, exist_ok=True)
+        result_counter = len(
+            [log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
+        saved_dir = os.path.join(training_save_dir, name + '_' + str(result_counter))
+        os.makedirs(saved_dir, exist_ok=True)
+        shutil.copyfile(self.config_path, os.path.join(saved_dir, self.config_path.split('/')[-1]))
+        best_checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '_best.h5'),
+                                          monitor='val_acc',
+                                          verbose=1,
+                                          save_best_only=True,
+                                          mode='max',
+                                          period=1)
+
+        checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '.h5'),
+                                     monitor='val_acc',
+                                     verbose=1,
+                                     save_best_only=False,
+                                     mode='max',
+                                     period=1)
+
+        tensorboard = TensorBoard(log_dir=saved_dir,
+                                  histogram_freq=0,
+                                  write_graph=True,
+                                  write_images=False)
+
+        self.model.fit_generator(generator=train_generator,
+                                 steps_per_epoch=x_train.shape[0] // self.config['train']['batch_size'],
+                                 epochs=self.config['train']['epochs'],
+                                 validation_data=validation_generator,
+                                 validation_steps=x_test.shape[0] // self.config['train']['batch_size'] * 0.2,
+                                 callbacks=[best_checkpoint, checkpoint, tensorboard],
+                                 max_queue_size=64)
+
+    def eval_imagenet(self, steps=None):
+
+
+        ### prepare dataset #####
+        (_, _), (x_test, y_test) = cifar10.load_data()
+
+        test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+
+        validation_generator = resize(test_datagen.flow(x_test, y_test,
+                                                        batch_size=self.config['train']['batch_size']))
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        if steps is None:
+            steps = x_test.shape[0] // self.config['train']['batch_size']
+        evaluation = self.model.evaluate_generator(validation_generator,
+                                                   steps=steps)
+        print(evaluation)
+        return evaluation
+
 class Trimmer(object):
 
     def __init__(self, original_model_folder, target_config_path):
@@ -545,12 +632,12 @@ class Trimmer(object):
         self.target_config_path = target_config_path
 
 
-    def trim(self):
+    def trim(self, trim_folder = './resnet/trimmed_models/'):
 
         with open(self.target_config_path) as config_buffer:
             target_config = json.load(config_buffer)
 
-        trimmed_save_folder = './resnet/trimmed_models/' + target_config['model']['name']
+        trimmed_save_folder =  os.path.join( trim_folder , target_config['model']['name'])
         os.makedirs(trimmed_save_folder,exist_ok=True)
         log_file = open(os.path.join(trimmed_save_folder,"log.txt"),'w')
 
@@ -579,7 +666,6 @@ class Trimmer(object):
             np.sum([K.count_params(p) for p in set(trimmed_model.non_trainable_weights)]))
         log_file.write('Trimmed Model total params: %d, Trainable params %d \n' % (trainable_count, non_trainable_count))
 
-        trimmed_save_folder = './resnet/trimmed_models/' + target_config['model']['name']
         trimmed_model.save(os.path.join(trimmed_save_folder, target_config['model']['name']+'.h5'))
 
         log_file.write(
