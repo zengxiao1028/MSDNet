@@ -244,7 +244,7 @@ class FrozenResNet50(ResNet50):
             bn_axis = 1
 
         x = self.conv2d(
-            filters_config[0][0], (7, 7), frozen_dim=0, frozen_filters=frozen_filters_config[0][0], strides=(2, 2), padding='same', name='conv1')(img_input)
+            filters_config[0][0], (7, 7), frozen_dim=3, frozen_filters=frozen_filters_config[0][0], strides=(2, 2), padding='same', name='conv1')(img_input)
         x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
         x = Activation('relu')(x)
         x = MaxPooling2D((3, 3), strides=(2, 2))(x)
@@ -350,7 +350,7 @@ class FrozenConv2D(Conv2D):
                  activation=None,
                  use_bias=True,
                  #kernel_initializer='glorot_uniform',
-                 kernel_initializer=keras.initializers.zeros,
+                 kernel_initializer='truncated_normal',
                  bias_initializer='zeros',
                  kernel_regularizer=None,
                  bias_regularizer=None,
@@ -644,6 +644,9 @@ class FrozenBatchNormalization(BatchNormalization):
 
 if __name__ == '__main__':
 
-    resnet = FrozenResNet50(config_path= './resnet/configs/30.json', frozen_model_config_path= './resnet/configs/20.json')
-    resnet.load_frozen_aug_weights('./resnet/results/20_1')
-    resnet.train_cifar10(training_save_dir='./resnet/recover_results/')
+    model_types = ['b10','b0','0','10','20','30','40','50','60','70','80','90','100']
+    for idx,frozen_model in enumerate(model_types):
+        recover_model_type = model_types[idx+1]
+        resnet = FrozenResNet50(config_path= './resnet/configs/%s.json' % recover_model_type, frozen_model_config_path= './resnet/configs/%.json' % frozen_model)
+        resnet.load_frozen_aug_weights('./resnet/results/%s_1' % frozen_model)
+        resnet.train_cifar10(training_save_dir='./resnet/recover_results/')
