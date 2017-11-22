@@ -640,21 +640,18 @@ class FrozenBatchNormalization(BatchNormalization):
 
         return super(FrozenBatchNormalization, self).call(inputs,training)
 
+def recover_cifar10():
 
-
-if __name__ == '__main__':
-
-    model_types = ['b10','b0','0','10','20','30','40','50','60','70','80','90','100']
     model_types = [
         ('b20', 'b10'),
-        ('b10','b0'),
+        ('b10', 'b0'),
         ('b0', '50'),
         ('50', '80'),
     ]
     for idx, types in enumerate(model_types):
         frozen_model_type, recover_model_type = types
-        resnet = FrozenResNet50(config_path= './resnet/configs/%s.json' % recover_model_type,
-                                frozen_model_config_path= './resnet/configs/%.json' % frozen_model_type)
+        resnet = FrozenResNet50(config_path='./resnet/configs/%s.json' % recover_model_type,
+                                frozen_model_config_path='./resnet/configs/%.json' % frozen_model_type)
 
         if idx == 0:
             resnet.load_frozen_aug_weights('./resnet/results/%s_1' % frozen_model_type)
@@ -662,3 +659,28 @@ if __name__ == '__main__':
             resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % frozen_model_type)
 
         resnet.train_cifar10(training_save_dir='./resnet/recover_results/')
+
+
+def recover_imagenet():
+
+    model_types = [
+        ('b20', 'b10'),
+        ('b10', 'b0'),
+        ('b0', '50'),
+        ('50', '80'),
+    ]
+    for idx, types in enumerate(model_types):
+        frozen_model_type, recover_model_type = types
+        resnet = FrozenResNet50(config_path='./resnet/imagenet/configs/%s.json' % recover_model_type,
+                                frozen_model_config_path='./resnet/imagenet/configs/%.json' % frozen_model_type)
+
+        if idx == 0:
+            resnet.load_frozen_aug_weights('./resnet/imagenet/results/%s_1' % frozen_model_type)
+        else:
+            resnet.load_frozen_aug_weights('./resnet/imagenet/recover_results/%s_1' % frozen_model_type)
+
+        resnet.train_imagenet(training_save_dir='./resnet/imagenet/recover_results/')
+
+
+if __name__ == '__main__':
+    recover_cifar10()

@@ -438,8 +438,8 @@ class ResNet50(object):
 
         return last_pos
 
-    def train_cifar10(self, training_save_dir = './resnet/results'):
-
+    def train_cifar10(self, training_save_dir = './resnet/results', epochs = None):
+        epochs = epochs if epochs is not None else self.config['train']['epochs']
         def resize(gen):
             """
             resize image to 224 x 224
@@ -501,7 +501,7 @@ class ResNet50(object):
 
         self.model.fit_generator(generator=train_generator,
                                 steps_per_epoch= x_train.shape[0] // self.config['train']['batch_size'],
-                                epochs=self.config['train']['epochs'],
+                                epochs=epochs,
                                 validation_data=validation_generator,
                                 validation_steps=x_test.shape[0] // self.config['train']['batch_size'],
                                 callbacks=[best_checkpoint, checkpoint,tensorboard],
@@ -537,11 +537,9 @@ class ResNet50(object):
         return evaluation
 
 
-    def train_imagenet(self, training_save_dir='./resnet/imagenet/results'):
-
+    def train_imagenet(self, training_save_dir='./resnet/imagenet/results', epochs = None):
+        epochs = epochs if epochs is not None else self.config['train']['epochs']
         ### prepare dataset #####
-        (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-
         train_datagen = ImageDataGenerator(
             preprocessing_function=preprocess_input,
             shear_range=0.1,
@@ -597,28 +595,31 @@ class ResNet50(object):
                                   write_graph=True,
                                   write_images=False)
 
+        train_images_num = len(glob.glob('./dataset/imagenet/train/*.JPEG',recursive=True))
+
         self.model.fit_generator(generator=train_generator,
-                                 steps_per_epoch=x_train.shape[0] // self.config['train']['batch_size'],
-                                 epochs=self.config['train']['epochs'],
+                                 steps_per_epoch=train_images_num // self.config['train']['batch_size'],
+                                 epochs=epochs,
                                  validation_data=validation_generator,
-                                 validation_steps=x_test.shape[0] // self.config['train']['batch_size'] * 0.2,
+                                 validation_steps= 50000 // self.config['train']['batch_size'] * 0.2,
                                  callbacks=[best_checkpoint, checkpoint, tensorboard],
                                  max_queue_size=64)
 
     def eval_imagenet(self, steps=None):
 
 
-        ### prepare dataset #####
-        (_, _), (x_test, y_test) = cifar10.load_data()
+        val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
-        test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+        validation_generator = val_datagen.flow_from_directory(
+            './dataset/imagenet/valid/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
 
-        validation_generator = resize(test_datagen.flow(x_test, y_test,
-                                                        batch_size=self.config['train']['batch_size']))
         opt = adam(lr=1e-4)
-        self.model.compile(opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
         if steps is None:
-            steps = x_test.shape[0] // self.config['train']['batch_size']
+            steps = 50000 // self.config['train']['batch_size']
         evaluation = self.model.evaluate_generator(validation_generator,
                                                    steps=steps)
         print(evaluation)
@@ -794,92 +795,18 @@ def main_cifar10():
 
 def main_imagenet():
 
-    resnet100 = ResNet50('./resnet/configs/100.json')
+    resnet100 = ResNet50('./resnet/imagenet/configs/100.json')
     resnet100.eval_imagenet()
+    resnet100.train_imagenet()
     #
     # print('##### Training resnet90 #####')
-    # trimmer = Trimmer('./resnet/results/100_1','./resnet/configs/90.json')
+    # trimmer = Trimmer('./resnet/imagenet/results/100_1','./resnet/imagenet/configs/90.json')
     # trimmer.trim()
-    # resnet90 = ResNet50.init_from_folder('./resnet/trimmed_models/90')
+    # resnet90 = ResNet50.init_from_folder('./resnet/imagenet/trimmed_models/90')
     # resnet90.eval_cifar10()
     # resnet90.train_cifar10()
     #
-    # print('##### Training resnet80 #####')
-    # trimmer = Trimmer('./resnet/results/90_1', './resnet/configs/80.json')
-    # trimmer.trim()
-    # resnet80 = ResNet50.init_from_folder('./resnet/trimmed_models/80')
-    # resnet80.eval_cifar10()
-    # resnet80.train_cifar10()
-    #
-    # print('##### Training resnet70 ##### ')
-    # trimmer = Trimmer('./resnet/results/80_1', './resnet/configs/70.json')
-    # trimmer.trim()
-    # resnet70 = ResNet50.init_from_folder('./resnet/trimmed_models/70')
-    # resnet70.eval_cifar10()
-    # resnet70.train_cifar10()
-    #
-    # print('##### Training resnet60 ##### ')
-    # trimmer = Trimmer('./resnet/results/70_1', './resnet/configs/60.json')
-    # trimmer.trim()
-    # resnet60 = ResNet50.init_from_folder('./resnet/trimmed_models/60')
-    # resnet60.eval_cifar10()
-    # resnet60.train_cifar10()
-    #
-    # print('##### Training resnet50 ##### ')
-    # trimmer = Trimmer('./resnet/results/60_1', './resnet/configs/50.json')
-    # trimmer.trim()
-    # resnet50 = ResNet50.init_from_folder('./resnet/trimmed_models/50')
-    # resnet50.eval_cifar10()
-    # resnet50.train_cifar10()
-    #
-    # print('##### Training resnet40 ##### ')
-    # trimmer = Trimmer('./resnet/results/50_1', './resnet/configs/40.json')
-    # trimmer.trim()
-    # resnet40 = ResNet50.init_from_folder('./resnet/trimmed_models/40')
-    # resnet40.eval_cifar10()
-    # resnet40.train_cifar10()
-    #
-    # print('##### Training resnet30 ##### ')
-    # trimmer = Trimmer('./resnet/results/40_1', './resnet/configs/30.json')
-    # trimmer.trim()
-    # resnet30 = ResNet50.init_from_folder('./resnet/trimmed_models/30')
-    # resnet30.eval_cifar10()
-    # resnet30.train_cifar10()
-    #
-    # print('##### Training resnet20 ##### ')
-    # trimmer = Trimmer('./resnet/results/30_1', './resnet/configs/20.json')
-    # trimmer.trim()
-    # resnet20 = ResNet50.init_from_folder('./resnet/trimmed_models/20')
-    # resnet20.eval_cifar10()
-    # resnet20.train_cifar10()
-    #
-    # print('##### Training resnet10 ##### ')
-    # trimmer = Trimmer('./resnet/results/20_1', './resnet/configs/10.json')
-    # trimmer.trim()
-    # resnet10 = ResNet50.init_from_folder('./resnet/trimmed_models/10')
-    # resnet10.eval_cifar10()
-    # resnet10.train_cifar10()
-    #
-    # print('##### Training resnet0 ##### ')
-    # trimmer = Trimmer('./resnet/results/10_1', './resnet/configs/0.json')
-    # trimmer.trim()
-    # resnet0 = ResNet50.init_from_folder('./resnet/trimmed_models/0')
-    # resnet0.eval_cifar10()
-    # resnet0.train_cifar10()
-    #
-    # print('##### Training resnetb0 ##### ')
-    # trimmer = Trimmer('./resnet/results/0_1', './resnet/configs/b0.json')
-    # trimmer.trim()
-    # resnetb0 = ResNet50.init_from_folder('./resnet/trimmed_models/b0')
-    # resnetb0.eval_cifar10()
-    # resnetb0.train_cifar10()
-    #
-    # print('##### Training resnetb20 ##### ')
-    # trimmer = Trimmer('./resnet/results/b10_1', './resnet/configs/b20.json')
-    # trimmer.trim()
-    # resnetb20 = ResNet50.init_from_folder('./resnet/trimmed_models/b20')
-    # resnetb20.eval_cifar10()
-    # resnetb20.train_cifar10()
+
 
 
 if __name__ == '__main__':
