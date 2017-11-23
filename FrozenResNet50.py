@@ -7,7 +7,7 @@ from keras import layers
 from keras.models import Model
 from keras.callbacks import ModelCheckpoint,TensorBoard
 from keras.datasets import cifar10
-import scipy,keras
+import scipy,keras,h5py
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 import warnings,os
@@ -75,20 +75,30 @@ class FrozenResNet50(ResNet50):
             config = json.load(config_buffer)
 
         frozen_model_path = os.path.join(frozen_model_folder, config['model']['name'] + '.h5')
-        frozen_model = load_model(frozen_model_path,custom_objects={'FrozenConv2D':FrozenConv2D, 'FrozenDense':FrozenDense})
-        assert len(frozen_model.layers) == len(self.model.layers)
+        #frozen_model = load_model(frozen_model_path,custom_objects={'FrozenConv2D':FrozenConv2D, 'FrozenDense':FrozenDense})
+        with h5py.File(frozen_model_path, mode='r') as f:
+            frozen_model_weights = f['model_weights']
+
 
         for idx, layer in enumerate(self.model.layers):
 
             weights = layer.get_weights()
+            if len(weights) == 0:
+                continue
+
+            g = f[layer.name]
+            weight_names = [n.decode('utf8') for n in g.attrs['weight_names']]
+            frozen_weights = [g[weight_name] for weight_name in weight_names]
+            frozen_weights = [np.asarray(frozen_weight) for frozen_weight in frozen_weights]
+
             if type(layer) is FrozenConv2D :
-                frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'conv')
+                frozen_weights = self._combine_frozen_weight(frozen_weights,'conv')
 
                 layer.set_weights( weights[:-2] + frozen_weights )
 
             elif type(layer) is FrozenDense :
 
-                frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'fc')
+                frozen_weights = self._combine_frozen_weight(frozen_weights,'fc')
                 layer.set_weights( weights[:-2] + frozen_weights )
 
             else:
