@@ -415,13 +415,7 @@ class FrozenConv2D(Conv2D):
         kernel_shape = self.kernel_size + (input_dim, self.filters)
 
         frozen_kernel_shape = self.kernel_size + (self.frozen_dim, self.frozen_filters)
-        self.kernel = self.add_weight(shape=frozen_kernel_shape,
-                                      initializer=self.kernel_initializer,
-                                      name='kernel',
-                                      regularizer=self.kernel_regularizer,
-                                      constraint=self.kernel_constraint,
-                                      trainable=self.frozen_trainable
-                                      )
+
 
         self.aug_dim = input_dim - self.frozen_dim
         if self.aug_dim > 0:
@@ -446,18 +440,27 @@ class FrozenConv2D(Conv2D):
 
 
         if self.use_bias:
-            self.bias = self.add_weight(shape=(self.frozen_filters,),
-                                        initializer=self.bias_initializer,
-                                        name='bias',
-                                        regularizer=self.bias_regularizer,
-                                        constraint=self.bias_constraint,
-                                        trainable=self.frozen_trainable)
             if self.aug_filters > 0:
                 self.aug_bias = self.add_weight(shape=(self.aug_filters,),
                                         initializer=self.bias_initializer,
                                         name='aug_bias',
                                         regularizer=self.bias_regularizer,
                                         constraint=self.bias_constraint)
+
+        self.kernel = self.add_weight(shape=frozen_kernel_shape,
+                                      initializer=self.kernel_initializer,
+                                      name='kernel',
+                                      regularizer=self.kernel_regularizer,
+                                      constraint=self.kernel_constraint,
+                                      trainable=self.frozen_trainable
+                                      )
+        if self.use_bias:
+            self.bias = self.add_weight(shape=(self.frozen_filters,),
+                                        initializer=self.bias_initializer,
+                                        name='bias',
+                                        regularizer=self.bias_regularizer,
+                                        constraint=self.bias_constraint,
+                                        trainable=self.frozen_trainable)
 
 
         else:
@@ -521,12 +524,7 @@ class FrozenDense(Dense):
         if self.frozen_dim > input_dim:
             raise ValueError('Frozen_dim should be smaller than or equal to input dim size')
 
-        self.kernel = self.add_weight(shape=(self.frozen_dim, self.units),
-                                      initializer=self.kernel_initializer,
-                                      name='kernel',
-                                      regularizer=self.kernel_regularizer,
-                                      constraint=self.kernel_constraint,
-                                      trainable=self.frozen_trainable)
+
 
         self.aug_dim = input_dim - self.frozen_dim
         if self.aug_dim > 0 :
@@ -536,6 +534,12 @@ class FrozenDense(Dense):
                                       regularizer=self.kernel_regularizer,
                                       constraint=self.kernel_constraint)
 
+        self.kernel = self.add_weight(shape=(self.frozen_dim, self.units),
+                                      initializer=self.kernel_initializer,
+                                      name='kernel',
+                                      regularizer=self.kernel_regularizer,
+                                      constraint=self.kernel_constraint,
+                                      trainable=self.frozen_trainable)
         if self.use_bias:
             self.bias = self.add_weight(shape=(self.units,),
                                         initializer=self.bias_initializer,
