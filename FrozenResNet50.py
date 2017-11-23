@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 from keras.layers import BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense,Conv2D
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -675,7 +675,7 @@ def recover_cifar10(frozen_trainable=False):
         if frozen_model_type == 'b20':
             resnet.load_frozen_aug_weights('./resnet/results/%s_1' % frozen_model_type)
         else:
-            resnet.load_frozen_aug_weights('./resnet/%s/%s_1' % ( save_dir, frozen_model_type))
+            resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % ( save_dir, frozen_model_type))
 
         resnet.train_cifar10(
             training_save_dir='./resnet/%s/' % save_dir,epochs=100)
@@ -703,4 +703,4 @@ def recover_imagenet():
 
 
 if __name__ == '__main__':
-    recover_cifar10()
+    recover_cifar10(frozen_trainable=True)
