@@ -80,29 +80,29 @@ class FrozenResNet50(ResNet50):
             frozen_model_weights = f['model_weights']
 
 
-        for idx, layer in enumerate(self.model.layers):
+            for idx, layer in enumerate(self.model.layers):
 
-            weights = layer.get_weights()
-            if len(weights) == 0:
-                continue
+                weights = layer.get_weights()
+                if len(weights) == 0:
+                    continue
 
-            g = f[layer.name]
-            weight_names = [n.decode('utf8') for n in g.attrs['weight_names']]
-            frozen_weights = [g[weight_name] for weight_name in weight_names]
-            frozen_weights = [np.asarray(frozen_weight) for frozen_weight in frozen_weights]
+                g = frozen_model_weights[layer.name]
+                weight_names = [n.decode('utf8') for n in g.attrs['weight_names']]
+                frozen_weights = [g[weight_name] for weight_name in weight_names]
+                frozen_weights = [np.asarray(frozen_weight) for frozen_weight in frozen_weights]
 
-            if type(layer) is FrozenConv2D :
-                frozen_weights = self._combine_frozen_weight(frozen_weights,'conv')
+                if type(layer) is FrozenConv2D :
+                    frozen_weights = self._combine_frozen_weight(frozen_weights,'conv')
 
-                layer.set_weights( weights[:-2] + frozen_weights )
+                    layer.set_weights( weights[:-2] + frozen_weights )
 
-            elif type(layer) is FrozenDense :
+                elif type(layer) is FrozenDense :
 
-                frozen_weights = self._combine_frozen_weight(frozen_weights,'fc')
-                layer.set_weights( weights[:-2] + frozen_weights )
+                    frozen_weights = self._combine_frozen_weight(frozen_weights,'fc')
+                    layer.set_weights( weights[:-2] + frozen_weights )
 
-            else:
-                layer.set_weights(weights)
+                else:
+                    layer.set_weights(weights)
 
 
 
@@ -128,7 +128,7 @@ class FrozenResNet50(ResNet50):
                 return frozen_weights
             elif len(frozen_weights) == 3:# aug_dim, kernel, bias
                 w = np.concatenate((frozen_weights[1], frozen_weights[0]), axis=2)
-                b = np.frozen_weights[2]
+                b = frozen_weights[2]
                 return [w, b]
             elif len(frozen_weights) == 4:  # aug_filter, aug_bias, kernel, bias
                 w = np.concatenate((frozen_weights[2], frozen_weights[0]), axis=3)
