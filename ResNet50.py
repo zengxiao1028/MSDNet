@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 from keras.layers import Conv2D,BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -559,7 +559,7 @@ class ResNet50(object):
         val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
         validation_generator = val_datagen.flow_from_directory(
-            './dataset/imagenet/valid/',
+            './dataset/imagenet/val/',
             target_size=(224, 224),
             batch_size=self.config['train']['batch_size'],
             class_mode='categorical')
@@ -595,7 +595,7 @@ class ResNet50(object):
                                   write_graph=True,
                                   write_images=False)
 
-        train_images_num = len(glob.glob('./dataset/imagenet/train/*.JPEG',recursive=True))
+        train_images_num = 1281167
 
         self.model.fit_generator(generator=train_generator,
                                  steps_per_epoch=train_images_num // self.config['train']['batch_size'],
@@ -611,7 +611,7 @@ class ResNet50(object):
         val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
         validation_generator = val_datagen.flow_from_directory(
-            './dataset/imagenet/valid/',
+            './dataset/imagenet/val/',
             target_size=(224, 224),
             batch_size=self.config['train']['batch_size'],
             class_mode='categorical')
@@ -796,7 +796,7 @@ def main_cifar10():
 def main_imagenet():
 
     resnet100 = ResNet50('./resnet/imagenet/configs/100.json')
-    resnet100.eval_imagenet()
+    #resnet100.eval_imagenet()
     resnet100.train_imagenet()
     #
     # print('##### Training resnet90 #####')
@@ -810,5 +810,5 @@ def main_imagenet():
 
 
 if __name__ == '__main__':
-    main_cifar10()
+    main_imagenet()
 

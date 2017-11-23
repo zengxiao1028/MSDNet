@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from keras.layers import BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense,Conv2D
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -75,13 +75,12 @@ class FrozenResNet50(ResNet50):
             config = json.load(config_buffer)
 
         frozen_model_path = os.path.join(frozen_model_folder, config['model']['name'] + '.h5')
-        frozen_model = load_model(frozen_model_path)
+        frozen_model = load_model(frozen_model_path,custom_objects={'FrozenConv2D':FrozenConv2D, 'FrozenDense':FrozenDense})
         assert len(frozen_model.layers) == len(self.model.layers)
 
         for idx, layer in enumerate(self.model.layers):
 
             weights = layer.get_weights()
-            print('loading weight for layer %s' % layer.name)
             if type(layer) is FrozenConv2D :
                 frozen_weights = self._combine_frozen_weight(frozen_model.layers[idx].get_weights(),'conv')
 
@@ -349,7 +348,7 @@ class FrozenConv2D(Conv2D):
                  dilation_rate=(1, 1),
                  activation=None,
                  use_bias=True,
-                 #kernel_initializer='glorot_uniform',
+                 #kernel_initializer='zeros',
                  kernel_initializer='truncated_normal',
                  bias_initializer='zeros',
                  kernel_regularizer=None,
@@ -479,6 +478,7 @@ class FrozenDense(Dense):
                  activation=None,
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
+                 #kernel_initializer='zeros',
                  bias_initializer='zeros',
                  kernel_regularizer=None,
                  bias_regularizer=None,
@@ -643,22 +643,23 @@ class FrozenBatchNormalization(BatchNormalization):
 def recover_cifar10():
 
     model_types = [
-        ('b20', 'b10'),
+        #('b20', 'b10'),
         ('b10', 'b0'),
         ('b0', '50'),
         ('50', '80'),
     ]
     for idx, types in enumerate(model_types):
+        K.clear_session()
         frozen_model_type, recover_model_type = types
-        resnet = FrozenResNet50(config_path='./resnet/configs/%s.json' % recover_model_type,
-                                frozen_model_config_path='./resnet/configs/%.json' % frozen_model_type)
+        resnet = FrozenResNet50(config_path= './resnet/configs/%s.json' % recover_model_type,
+                                frozen_model_config_path= './resnet/configs/%s.json' % frozen_model_type)
 
-        if idx == 0:
+        if frozen_model_type == 'b20':
             resnet.load_frozen_aug_weights('./resnet/results/%s_1' % frozen_model_type)
         else:
             resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % frozen_model_type)
 
-        resnet.train_cifar10(training_save_dir='./resnet/recover_results/')
+        resnet.train_cifar10(training_save_dir='./resnet/recover_results/',epochs=100)
 
 
 def recover_imagenet():
