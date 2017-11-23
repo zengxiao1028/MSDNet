@@ -29,13 +29,13 @@ from keras.models import load_model
 class FrozenResNet50(ResNet50):
 
 
-    def __init__(self, config_path, frozen_model_config_path, weights_path = None):
+    def __init__(self, config_path, frozen_model_config_path, weights_path = None, frozen_trainbale=False):
 
         assert os.path.exists(config_path)
         self.conv2d = FrozenConv2D
         self.dense = FrozenDense
         self.config_path = config_path
-
+        self.frozen_trainable = frozen_trainbale
         # obtain frozen configs
         self.frozen_dim_filters = self._obtain_frozen_dim_filters(frozen_model_config_path)
 
@@ -178,16 +178,21 @@ class FrozenResNet50(ResNet50):
         conv_name_base = 'res' + str(stage) + block + '_branch'
         bn_name_base = 'bn' + str(stage) + block + '_branch'
 
-        x = self.conv2d(filters1,  (1, 1), frozen_dim= frozen_dim1, frozen_filters=frozen_filers1, name=conv_name_base + '2a')(input_tensor)
+        x = self.conv2d(filters1,  (1, 1), frozen_dim= frozen_dim1, frozen_filters=frozen_filers1,
+                        frozen_trainable=self.frozen_trainable,
+                        name=conv_name_base + '2a')(input_tensor)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
         x = Activation('relu')(x)
 
         x = self.conv2d(filters2, kernel_size, frozen_dim=frozen_dim2, frozen_filters=frozen_filers2,
+                        frozen_trainable=self.frozen_trainable,
                    padding='same', name=conv_name_base + '2b')(x)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
         x = Activation('relu')(x)
 
-        x = self.conv2d(filters3, (1, 1), frozen_dim=frozen_dim3, frozen_filters=frozen_filers3, name=conv_name_base + '2c')(x)
+        x = self.conv2d(filters3, (1, 1), frozen_dim=frozen_dim3, frozen_filters=frozen_filers3,
+                        frozen_trainable= self.frozen_trainable,
+                        name=conv_name_base + '2c')(x)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
 
         x = layers.add([x, input_tensor])
@@ -207,19 +212,25 @@ class FrozenResNet50(ResNet50):
         bn_name_base = 'bn' + str(stage) + block + '_branch'
 
         x = self.conv2d(filters1,  (1, 1), frozen_dim=frozen_dim1, frozen_filters=frozen_filers1, strides=strides,
+                        frozen_trainable=self.frozen_trainable,
                    name=conv_name_base + '2a')(input_tensor)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2a')(x)
         x = Activation('relu')(x)
 
         x = self.conv2d(filters2, kernel_size, frozen_dim = frozen_dim2, frozen_filters=frozen_filers2, padding='same',
+                        frozen_trainable=self.frozen_trainable,
                    name=conv_name_base + '2b')(x)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2b')(x)
         x = Activation('relu')(x)
 
-        x = self.conv2d(filters3, (1, 1), frozen_dim = frozen_dim3, frozen_filters=frozen_filers3, name=conv_name_base + '2c')(x)
+        x = self.conv2d(filters3, (1, 1), frozen_dim = frozen_dim3, frozen_filters=frozen_filers3,
+                        frozen_trainable=self.frozen_trainable,
+                        name=conv_name_base + '2c')(x)
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
 
-        shortcut = self.conv2d(filters3, (1, 1), frozen_dim = frozen_dim1, frozen_filters=frozen_filers3, strides=strides,
+        shortcut = self.conv2d(filters3, (1, 1), frozen_dim = frozen_dim1, frozen_filters=frozen_filers3,
+                               frozen_trainable = self.frozen_trainable,
+                               strides=strides,
                           name=conv_name_base + '1')(input_tensor)
         shortcut = BatchNormalization(axis=bn_axis, name=bn_name_base + '1')(shortcut)
 
@@ -253,7 +264,8 @@ class FrozenResNet50(ResNet50):
             bn_axis = 1
 
         x = self.conv2d(
-            filters_config[0][0], (7, 7), frozen_dim=3, frozen_filters=frozen_filters_config[0][0], strides=(2, 2), padding='same', name='conv1')(img_input)
+            filters_config[0][0], (7, 7), frozen_dim=3, frozen_filters=frozen_filters_config[0][0],
+            frozen_trainable=self.frozen_trainable, strides=(2, 2), padding='same', name='conv1')(img_input)
         x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
         x = Activation('relu')(x)
         x = MaxPooling2D((3, 3), strides=(2, 2))(x)
@@ -282,7 +294,8 @@ class FrozenResNet50(ResNet50):
 
         if include_top:
             x = Flatten()(x)
-            x = self.dense(classes, frozen_dim=frozen_dim_configs[-1][0], activation='softmax', name='fc1000')(x)
+            x = self.dense(classes, frozen_dim=frozen_dim_configs[-1][0],
+                           frozen_trainable=self.frozen_trainable, activation='softmax', name='fc1000')(x)
         else:
             if pooling == 'avg':
                 x = GlobalAveragePooling2D()(x)
@@ -334,16 +347,6 @@ class FrozenResNet50(ResNet50):
 
 
 
-    def recover(self,filters_config, name):
-        recovered_model = self._resNet50(filters_config,  # use new filters setting
-                                       include_top=self.config['model']['include_top'],  # use original setting
-                                       weights=None,  # no need to preload
-                                       classes=self.config['model']['classes'],  # no change
-                                       model_name=name)
-        weights = recovered_model.layers[6].non_trainable_weights
-        print(weights)
-
-
 
 class FrozenConv2D(Conv2D):
 
@@ -352,6 +355,7 @@ class FrozenConv2D(Conv2D):
                  kernel_size,
                  frozen_dim=0,  ## nb of dim we need to freeze
                  frozen_filters=0,  ## nb of filters we need to freeze
+                 frozen_trainable=False, # for training baseline
                  strides=(1, 1),
                  padding='valid',
                  data_format=None,
@@ -391,6 +395,7 @@ class FrozenConv2D(Conv2D):
 
         self.frozen_dim = frozen_dim
         self.frozen_filters = frozen_filters
+        self.frozen_trainable = frozen_trainable
         ###################
 
     def build(self, input_shape):
@@ -415,7 +420,7 @@ class FrozenConv2D(Conv2D):
                                       name='kernel',
                                       regularizer=self.kernel_regularizer,
                                       constraint=self.kernel_constraint,
-                                      trainable=False
+                                      trainable=self.frozen_trainable
                                       )
 
         self.aug_dim = input_dim - self.frozen_dim
@@ -425,8 +430,7 @@ class FrozenConv2D(Conv2D):
                                                   initializer=self.kernel_initializer,
                                                   name='aug_dim_kernel',
                                                   regularizer=self.kernel_regularizer,
-                                                  constraint=self.kernel_constraint,
-                                                  trainable=True if self.aug_dim > 0 else False,
+                                                  constraint=self.kernel_constraint
                                                   )
 
 
@@ -437,8 +441,7 @@ class FrozenConv2D(Conv2D):
                                           initializer=self.kernel_initializer,
                                           name='aug_filter_kernel',
                                           regularizer=self.kernel_regularizer,
-                                          constraint=self.kernel_constraint,
-                                          trainable= True if self.aug_filters > 0 else False
+                                          constraint=self.kernel_constraint
                                           )
 
 
@@ -448,14 +451,13 @@ class FrozenConv2D(Conv2D):
                                         name='bias',
                                         regularizer=self.bias_regularizer,
                                         constraint=self.bias_constraint,
-                                        trainable=False)
+                                        trainable=self.frozen_trainable)
             if self.aug_filters > 0:
                 self.aug_bias = self.add_weight(shape=(self.aug_filters,),
                                         initializer=self.bias_initializer,
                                         name='aug_bias',
                                         regularizer=self.bias_regularizer,
-                                        constraint=self.bias_constraint,
-                                        trainable=True if self.aug_filters > 0 else False)
+                                        constraint=self.bias_constraint)
 
 
         else:
@@ -485,6 +487,7 @@ class FrozenDense(Dense):
     @interfaces.legacy_dense_support
     def __init__(self, units,
                  frozen_dim=0, # right now it only supports frozen_dim. Frozen_units will be supported in the future.
+                 frozen_trainable=False, # for training baseline
                  activation=None,
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
@@ -509,7 +512,7 @@ class FrozenDense(Dense):
             bias_constraint=bias_constraint,
             **kwargs)
         self.frozen_dim = frozen_dim
-
+        self.frozen_trainable = frozen_trainable
 
     def build(self, input_shape):
         assert len(input_shape) >= 2
@@ -523,7 +526,7 @@ class FrozenDense(Dense):
                                       name='kernel',
                                       regularizer=self.kernel_regularizer,
                                       constraint=self.kernel_constraint,
-                                      trainable=False)
+                                      trainable=self.frozen_trainable)
 
         self.aug_dim = input_dim - self.frozen_dim
         if self.aug_dim > 0 :
@@ -531,8 +534,7 @@ class FrozenDense(Dense):
                                       initializer=self.kernel_initializer,
                                       name='aug_dim_kernel',
                                       regularizer=self.kernel_regularizer,
-                                      constraint=self.kernel_constraint,
-                                      trainable=True if self.aug_dim >0 else False )
+                                      constraint=self.kernel_constraint)
 
         if self.use_bias:
             self.bias = self.add_weight(shape=(self.units,),
@@ -540,7 +542,7 @@ class FrozenDense(Dense):
                                         name='bias',
                                         regularizer=self.bias_regularizer,
                                         constraint=self.bias_constraint,
-                                        trainable=False)
+                                        trainable=self.frozen_trainable)
         else:
             self.bias = None
         self.input_spec = InputSpec(min_ndim=2, axes={-1: input_dim})
@@ -650,10 +652,10 @@ class FrozenBatchNormalization(BatchNormalization):
 
         return super(FrozenBatchNormalization, self).call(inputs,training)
 
-def recover_cifar10():
+def recover_cifar10(frozen_trainable=False):
 
     model_types = [
-        #('b20', 'b10'),
+        ('b20', 'b10'),
         ('b10', 'b0'),
         ('b0', '50'),
         ('50', '80'),
@@ -661,15 +663,18 @@ def recover_cifar10():
     for idx, types in enumerate(model_types):
         K.clear_session()
         frozen_model_type, recover_model_type = types
-        resnet = FrozenResNet50(config_path= './resnet/configs/%s.json' % recover_model_type,
-                                frozen_model_config_path= './resnet/configs/%s.json' % frozen_model_type)
+        resnet = FrozenResNet50(config_path = './resnet/configs/%s.json' % recover_model_type,
+                                frozen_model_config_path = './resnet/configs/%s.json' % frozen_model_type,
+                                frozen_trainbale = frozen_trainable)
 
+        save_dir = 'recover_results' if frozen_trainable is False else 'unfreeze_recover_results'
         if frozen_model_type == 'b20':
             resnet.load_frozen_aug_weights('./resnet/results/%s_1' % frozen_model_type)
         else:
-            resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % frozen_model_type)
+            resnet.load_frozen_aug_weights('./resnet/%s/%s_1' % ( save_dir, frozen_model_type))
 
-        resnet.train_cifar10(training_save_dir='./resnet/recover_results/',epochs=100)
+        resnet.train_cifar10(
+            training_save_dir='./resnet/%s/' % save_dir,epochs=100)
 
 
 def recover_imagenet():
