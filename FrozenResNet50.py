@@ -775,4 +775,8 @@ def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epoc
 
 
 if __name__ == '__main__':
-    recover_cifar10(frozen_trainable=True)
+    #recover_cifar10(frozen_trainable=True)
+
+    # resnet90 = ResNet50.init_from_folder('./resnet/trimmed_models/90')
+    # resnet90.eval_cifar10()
+    train_cifar10_early_exit()
