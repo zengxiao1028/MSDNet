@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from keras.layers import BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense,Conv2D
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -102,7 +102,7 @@ class FrozenResNet50(ResNet50):
                     layer.set_weights( weights[:-2] + frozen_weights )
 
                 else:
-                    layer.set_weights(weights)
+                    layer.set_weights(frozen_weights)
 
 
 
@@ -774,8 +774,11 @@ def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epoc
                              max_queue_size=64)
 
 def train_cifar10_early_exit():
-    model_name = ''
-    resnet = ResNet50.init_from_folder('./resnet/recove_results/%s' % model_name)
+    recover_model_type = frozen_model_type = 'b10'
+    resnet = FrozenResNet50(config_path='./resnet/configs/%s.json' % recover_model_type,
+                            frozen_model_config_path='./resnet/configs/%s.json' % frozen_model_type,
+                            frozen_trainbale=False)
+    resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % recover_model_type )
     resnet.eval_cifar10()
 
 
