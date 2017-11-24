@@ -773,10 +773,14 @@ def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epoc
                              callbacks=[best_checkpoint, checkpoint, tensorboard],
                              max_queue_size=64)
 
+def train_cifar10_early_exit():
+    model_name = ''
+    resnet = ResNet50.init_from_folder('./resnet/recove_results/%s' % model_name)
+    resnet.eval_cifar10()
+
 
 if __name__ == '__main__':
     #recover_cifar10(frozen_trainable=True)
 
-    # resnet90 = ResNet50.init_from_folder('./resnet/trimmed_models/90')
-    # resnet90.eval_cifar10()
     train_cifar10_early_exit()
+
