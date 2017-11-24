@@ -345,8 +345,10 @@ class FrozenResNet50(ResNet50):
         return model
 
     def build_early_exit_model(self):
+        layers = self.model.layers
         for layer in self.model.layers:
             layer.trainable = False
+
         print(layers)
 
     def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epochs=None):
@@ -383,7 +385,7 @@ class FrozenResNet50(ResNet50):
 
         #### comppile model ########
         opt = adam(lr=1e-4)
-        self.model.build_early_exit_model()
+        self.build_early_exit_model()
         self.model.compile(opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         self.model.summary()
         #### prepare training ########
@@ -782,6 +784,9 @@ def train_cifar10_early_exit():
                             frozen_model_config_path='./resnet/configs/%s.json' % frozen_model_type,
                             frozen_trainbale=False)
     resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % recover_model_type )
+    print('Evaluating top output of %s' % recover_model_type)
+    resnet.eval_cifar10()
+    print('Training ee of %s' % recover_model_type)
     resnet.train_cifar10_early_exit(training_save_dir='./resnet/ee_results')
 
 
