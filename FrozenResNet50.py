@@ -26,6 +26,8 @@ from keras.legacy import interfaces
 from keras.engine.topology import InputSpec
 from ResNet50 import ResNet50
 from keras.models import load_model
+from keras.applications.mobilenet import DepthwiseConv2D
+
 class FrozenResNet50(ResNet50):
 
 
@@ -196,7 +198,7 @@ class FrozenResNet50(ResNet50):
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
 
         x = layers.add([x, input_tensor])
-        x = Activation('relu')(x)
+        x = Activation('relu',name='ee'+ str(stage) + block)(x)
         return x
 
     def conv_block(self,input_tensor, kernel_size, filters, frozen_dim, frozen_filters, stage, block, strides=(2, 2)):
@@ -345,11 +347,68 @@ class FrozenResNet50(ResNet50):
         return model
 
     def build_early_exit_model(self):
+
+        def relu6(x):
+            return K.relu(x, max_value=6)
+
+        def _depthwise_conv_block(inputs, pointwise_conv_filters, alpha,
+                                  depth_multiplier=1, strides=(1, 1), block_id=1):
+
+            channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
+            pointwise_conv_filters = int(pointwise_conv_filters * alpha)
+
+            x = inputs
+
+            # x = Conv2D(pointwise_conv_filters, (1, 1),
+            #            padding='same',
+            #            use_bias=False,
+            #            strides=(1, 1),
+            #            name='conv_pre_pw_%d' % block_id)(inputs)
+            # x = BatchNormalization(axis=channel_axis, name='conv_pre_pw_%d_bn' % block_id)(x)
+            # x = Activation(relu6, name='conv_pre_pw_%d_relu' % block_id)(x)
+
+            x = DepthwiseConv2D((3, 3),
+                                padding='same',
+                                depth_multiplier=depth_multiplier,
+                                strides=strides,
+                                use_bias=False,
+                                name='conv_dw_%d' % block_id)(x)
+            x = BatchNormalization(axis=channel_axis, name='conv_dw_%d_bn' % block_id)(x)
+            x = Activation(relu6, name='conv_dw_%d_relu' % block_id)(x)
+
+            x = Conv2D(pointwise_conv_filters, (1, 1),
+                       padding='same',
+                       use_bias=False,
+                       strides=(1, 1),
+                       name='conv_pw_%d' % block_id)(x)
+            x = BatchNormalization(axis=channel_axis, name='conv_pw_%d_bn' % block_id)(x)
+            return Activation(relu6, name='conv_pw_%d_relu' % block_id)(x)
+
+        def _create_ouput(x):
+            if K.image_data_format() == 'channels_first':
+                shape = (-1, 1, 1)
+            else:
+                shape = (1, 1, int(1024 * alpha))
+
+            x = GlobalAveragePooling2D()(x)
+            x = Reshape(shape, name='reshape_1')(x)
+            x = Dropout(dropout, name='dropout')(x)
+            x = Conv2D(classes, (1, 1),
+                       padding='same', name='conv_preds')(x)
+            x = Activation('softmax', name='act_softmax')(x)
+            x = Reshape((classes,), name='reshape_2')(x)
+            return x = GlobalAveragePooling2D()(x)
+
+
         layers = self.model.layers
-        for layer in self.model.layers:
+        for layer in layers:
             layer.trainable = False
 
-        print(layers)
+        ee1 = self.model.get_layer('ee2c')
+        ee2 = self.model.get_layer('ee3d')
+        ee3 = self.model.get_layer('ee4f')
+
+
 
     def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epochs=None):
         epochs = epochs if epochs is not None else self.config['train']['epochs']
