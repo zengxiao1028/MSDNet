@@ -146,7 +146,7 @@ class FrozenResNet50(ResNet50):
             if len(frozen_weights) == 2:#  kernel, bias
                 return frozen_weights
             elif len(frozen_weights) == 3:# aug_dim, kernel, bias
-                w = np.concatenate( (frozen_weights[1],frozen_weights[0]), axis=2)
+                w = np.concatenate( (frozen_weights[1],frozen_weights[0]), axis=0)
                 b = frozen_weights[2]
                 return [w,b]
             else:
@@ -659,7 +659,7 @@ class FrozenBatchNormalization(BatchNormalization):
 def recover_cifar10(frozen_trainable=False):
 
     model_types = [
-        ('b20', 'b10'),
+        #('b20', 'b10'),
         ('b10', 'b0'),
         ('b0', '50'),
         ('50', '80'),
@@ -675,7 +675,7 @@ def recover_cifar10(frozen_trainable=False):
         if frozen_model_type == 'b20':
             resnet.load_frozen_aug_weights('./resnet/results/%s_1' % frozen_model_type)
         else:
-            resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % ( save_dir, frozen_model_type))
+            resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' %  frozen_model_type )
 
         resnet.train_cifar10(
             training_save_dir='./resnet/%s/' % save_dir,epochs=100)
