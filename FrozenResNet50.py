@@ -349,6 +349,77 @@ class FrozenResNet50(ResNet50):
             layer.trainable = False
         print(layers)
 
+    def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epochs=None):
+        epochs = epochs if epochs is not None else self.config['train']['epochs']
+
+        def resize(gen):
+            """
+            resize image to 224 x 224
+            change to one-hot
+            """
+            while True:
+                imgs, y = gen.next()
+                img = np.array([scipy.misc.imresize(imgs[i, ...], (224, 224)) for i in range(imgs.shape[0])])
+
+                yield (img, y)
+
+        ### prepare dataset #####
+        (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+        train_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input,
+            shear_range=0.1,
+            horizontal_flip=True,
+            rotation_range=30.,
+            width_shift_range=0.1,
+            height_shift_range=0.1)
+
+        train_generator = resize(train_datagen.flow(x_train, y_train,
+                                                    batch_size=self.config['train']['batch_size']))
+
+        test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+
+        validation_generator = resize(test_datagen.flow(x_test, y_test,
+                                                        batch_size=self.config['train']['batch_size']))
+
+        #### comppile model ########
+        opt = adam(lr=1e-4)
+        self.model.build_early_exit_model()
+        self.model.compile(opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        self.model.summary()
+        #### prepare training ########
+        name = self.model.name
+        os.makedirs(training_save_dir, exist_ok=True)
+        result_counter = len([log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
+        saved_dir = os.path.join(training_save_dir, name + '_' + str(result_counter))
+        os.makedirs(saved_dir, exist_ok=True)
+        shutil.copyfile(self.config_path, os.path.join(saved_dir, self.config_path.split('/')[-1]))
+        best_checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '_best.h5'),
+                                          monitor='val_acc',
+                                          verbose=1,
+                                          save_best_only=True,
+                                          mode='max',
+                                          period=1)
+
+        checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '.h5'),
+                                     monitor='val_acc',
+                                     verbose=1,
+                                     save_best_only=False,
+                                     mode='max',
+                                     period=1)
+
+        tensorboard = TensorBoard(log_dir=saved_dir,
+                                  histogram_freq=0,
+                                  write_graph=True,
+                                  write_images=False)
+
+        self.model.fit_generator(generator=train_generator,
+                                 steps_per_epoch=x_train.shape[0] // self.config['train']['batch_size'],
+                                 epochs=epochs,
+                                 validation_data=validation_generator,
+                                 validation_steps=x_test.shape[0] // self.config['train']['batch_size'],
+                                 callbacks=[best_checkpoint, checkpoint, tensorboard],
+                                 max_queue_size=64)
+
 class FrozenConv2D(Conv2D):
 
     @interfaces.legacy_conv2d_support
@@ -703,76 +774,7 @@ def recover_imagenet():
         resnet.train_imagenet(training_save_dir='./resnet/imagenet/recover_results/')
 
 
-def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epochs=None):
-    epochs = epochs if epochs is not None else self.config['train']['epochs']
 
-    def resize(gen):
-        """
-        resize image to 224 x 224
-        change to one-hot
-        """
-        while True:
-            imgs, y = gen.next()
-            img = np.array([scipy.misc.imresize(imgs[i, ...], (224, 224)) for i in range(imgs.shape[0])])
-
-            yield (img, y)
-
-    ### prepare dataset #####
-    (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-    train_datagen = ImageDataGenerator(
-        preprocessing_function=preprocess_input,
-        shear_range=0.1,
-        horizontal_flip=True,
-        rotation_range=30.,
-        width_shift_range=0.1,
-        height_shift_range=0.1)
-
-    train_generator = resize(train_datagen.flow(x_train, y_train,
-                                                batch_size=self.config['train']['batch_size']))
-
-    test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-
-    validation_generator = resize(test_datagen.flow(x_test, y_test,
-                                                    batch_size=self.config['train']['batch_size']))
-
-    #### comppile model ########
-    opt = adam(lr=1e-4)
-    self.model.build_early_exit_model()
-    self.model.compile(opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-    self.model.summary()
-    #### prepare training ########
-    name = self.model.name
-    os.makedirs(training_save_dir, exist_ok=True)
-    result_counter = len([log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
-    saved_dir = os.path.join(training_save_dir, name + '_' + str(result_counter))
-    os.makedirs(saved_dir, exist_ok=True)
-    shutil.copyfile(self.config_path, os.path.join(saved_dir, self.config_path.split('/')[-1]))
-    best_checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '_best.h5'),
-                                      monitor='val_acc',
-                                      verbose=1,
-                                      save_best_only=True,
-                                      mode='max',
-                                      period=1)
-
-    checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '.h5'),
-                                 monitor='val_acc',
-                                 verbose=1,
-                                 save_best_only=False,
-                                 mode='max',
-                                 period=1)
-
-    tensorboard = TensorBoard(log_dir=saved_dir,
-                              histogram_freq=0,
-                              write_graph=True,
-                              write_images=False)
-
-    self.model.fit_generator(generator=train_generator,
-                             steps_per_epoch=x_train.shape[0] // self.config['train']['batch_size'],
-                             epochs=epochs,
-                             validation_data=validation_generator,
-                             validation_steps=x_test.shape[0] // self.config['train']['batch_size'],
-                             callbacks=[best_checkpoint, checkpoint, tensorboard],
-                             max_queue_size=64)
 
 def train_cifar10_early_exit():
     recover_model_type = frozen_model_type = 'b10'
@@ -780,7 +782,8 @@ def train_cifar10_early_exit():
                             frozen_model_config_path='./resnet/configs/%s.json' % frozen_model_type,
                             frozen_trainbale=False)
     resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % recover_model_type )
-    resnet.eval_cifar10()
+    resnet.train_cifar10_early_exit(training_save_dir='./resnet/ee_results')
+
 
 
 if __name__ == '__main__':
