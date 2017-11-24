@@ -344,8 +344,9 @@ class FrozenResNet50(ResNet50):
                               'at ~/.keras/keras.json.')
         return model
 
-    def add_early_exit(self):
-        layers = self.model.layers
+    def build_early_exit_model(self):
+        for layer in self.model.layers:
+            layer.trainable = False
         print(layers)
 
 class FrozenConv2D(Conv2D):
@@ -736,7 +737,7 @@ def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epoc
 
     #### comppile model ########
     opt = adam(lr=1e-4)
-    self.model.add_early_exit()
+    self.model.build_early_exit_model()
     self.model.compile(opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     self.model.summary()
     #### prepare training ########
