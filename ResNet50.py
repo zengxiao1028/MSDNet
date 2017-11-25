@@ -26,6 +26,7 @@ from keras.legacy import interfaces
 from keras.engine.topology import InputSpec
 from keras.applications.mobilenet import DepthwiseConv2D
 from keras.layers import Reshape
+from dataset.imagenet import imagenet_generator
 class ResNet50(object):
 
     def __init__(self, config_path, weights_path = None ):
@@ -669,30 +670,9 @@ class ResNet50(object):
 
     def train_imagenet(self, training_save_dir='./resnet/imagenet/results', epochs = None):
         epochs = epochs if epochs is not None else self.config['train']['epochs']
-        ### prepare dataset #####
-        train_datagen = ImageDataGenerator(
-            preprocessing_function=preprocess_input,
-            shear_range=0.1,
-            horizontal_flip=True,
-            rotation_range=30.,
-            width_shift_range=0.1,
-            height_shift_range=0.1)
-
-        train_generator = train_datagen.flow_from_directory(
-            './dataset/imagenet/train/',
-            target_size=(224, 224),
-            batch_size=self.config['train']['batch_size'],
-            class_mode='categorical')
-
-
-
-        val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-
-        validation_generator = val_datagen.flow_from_directory(
-            './dataset/imagenet/val/',
-            target_size=(224, 224),
-            batch_size=self.config['train']['batch_size'],
-            class_mode='categorical')
+        train_generator, validation_generator = imagenet_generator.data_generator('./dataset/imagenet/train/',
+                                                                   './dataset/imagenet/val/',
+                                                                   self.config['train']['batch_size'])
 
         #### comppile model ########
         opt = adam(lr=1e-4)
@@ -738,13 +718,10 @@ class ResNet50(object):
     def eval_imagenet(self, steps=None):
 
 
-        val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-
-        validation_generator = val_datagen.flow_from_directory(
-            './dataset/imagenet/val/',
-            target_size=(224, 224),
-            batch_size=self.config['train']['batch_size'],
-            class_mode='categorical')
+        _, validation_generator = imagenet_generator.data_generator('./dataset/imagenet/train/',
+                                                                   './dataset/imagenet/val/',
+                                                                   self.config['train']['batch_size']
+                                                     ,classes)
 
         opt = adam(lr=1e-4)
         self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
