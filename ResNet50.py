@@ -913,7 +913,7 @@ def main_imagenet():
         print('Training resnet%s for imagenet' % models[i+1])
 
         trimmer = Trimmer('./resnet/imagenet/results/%s_1' % models[i],'./resnet/imagenet/configs/%s.json' % models[i+1])
-        trimmer.trim()
+        trimmer.trim(trim_folder = './resnet/imagenet/trimmed_models/')
         resnet = ResNet50.init_from_folder('./resnet/imagenet/trimmed_models/%s' % models[i+1])
         resnet.eval_imagenet()
         resnet.train_imagenet()
