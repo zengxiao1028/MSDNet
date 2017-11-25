@@ -910,16 +910,15 @@ def main_imagenet():
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
-    for i in range(0,len(models)):
+    for i in range(0,len(models)-1):
         print('Training resnet%s for imagenet' % models[i+1])
 
-    # print('##### Training resnet90 #####')
-    # trimmer = Trimmer('./resnet/imagenet/results/100_1','./resnet/imagenet/configs/90.json')
-    # trimmer.trim()
-    # resnet90 = ResNet50.init_from_folder('./resnet/imagenet/trimmed_models/90')
-    # resnet90.eval_cifar10()
-    # resnet90.train_cifar10()
-    #
+        trimmer = Trimmer('./resnet/imagenet/results/%s_1' % models[i],'./resnet/imagenet/configs/%s.json' % models[i+1])
+        trimmer.trim()
+        resnet = ResNet50.init_from_folder('./resnet/imagenet/trimmed_models/%s' % models[i+1])
+        resnet.eval_cifar10()
+        resnet.train_cifar10()
+
 
 
 
