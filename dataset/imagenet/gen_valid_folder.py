@@ -3,6 +3,7 @@ import os
 import shutil
 
 def main():
+
     with open('/storage/imagenet/ILSVRC/devkit/data/map_clsloc.txt') as f:
         lines = f.readlines()
         entries = [line.split() for line in lines]
