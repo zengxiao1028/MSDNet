@@ -537,7 +537,7 @@ class ResNet50(object):
         print(evaluation)
         return evaluation
 
-    def build_early_exit_model(self):
+    def build_early_exit_model(self,pointwise_conv_filters):
 
         def relu6(x):
             return K.relu(x, max_value=6)
@@ -549,11 +549,10 @@ class ResNet50(object):
 
             x = inputs
 
-            # x = Conv2D(pointwise_conv_filters, (1, 1),
+            # x = Conv2D(64, (1, 1),
             #            padding='same',
             #            use_bias=False,
-            #            strides=(1, 1),
-            #            name='conv_pre_pw_%d' % block_id)(inputs)
+            #            strides=(1, 1))(x)
             # x = BatchNormalization(axis=channel_axis, name='conv_pre_pw_%d_bn' % block_id)(x)
             # x = Activation(relu6, name='conv_pre_pw_%d_relu' % block_id)(x)
 
@@ -588,14 +587,14 @@ class ResNet50(object):
             layer.trainable = False
 
         print('creating early exit...')
-        ee1 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee2c').output,pointwise_conv_filters=512),'ee2c')
-        ee2 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee3d').output,pointwise_conv_filters=512),'ee3d')
-        ee3 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee4f').output,pointwise_conv_filters=512),'ee4f')
+        ee1 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee2c').output,pointwise_conv_filters=pointwise_conv_filters),'ee2c')
+        ee2 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee3d').output,pointwise_conv_filters=pointwise_conv_filters),'ee3d')
+        ee3 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee4f').output,pointwise_conv_filters=pointwise_conv_filters),'ee4f')
 
-        ee_model = Model(self.model.inputs, [ee1,ee2,ee3], name=self.config['model']['name'])
+        ee_model = Model(self.model.inputs, [ee1,ee2,ee3] + self.model.outputs, name=self.config['model']['name'])
         self.model = ee_model
 
-    def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epochs=None):
+    def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epochs=None, pointwise_conv_filters=128):
         epochs = epochs if epochs is not None else self.config['train']['epochs']
 
         def resize(gen):
@@ -607,7 +606,7 @@ class ResNet50(object):
                 imgs, y = gen.next()
                 img = np.array([scipy.misc.imresize(imgs[i, ...], (224, 224)) for i in range(imgs.shape[0])])
 
-                yield (img, [y]*3)
+                yield (img, [y]*4)
 
         ### prepare dataset #####
         (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -629,7 +628,7 @@ class ResNet50(object):
 
         #### comppile model ########
         opt = adam(lr=1e-4)
-        self.build_early_exit_model()
+        self.build_early_exit_model(pointwise_conv_filters)
         self.model.compile(opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         self.model.summary()
         #### prepare training ########

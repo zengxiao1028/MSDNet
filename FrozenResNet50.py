@@ -705,7 +705,12 @@ def recover_imagenet():
 
 def train_cifar10_early_exit():
 
-    model_types = ['b20','b10','b0','50','80']
+    model_types = [
+        'b20',
+        'b10',
+        'b0',
+        '50',
+        '80']
 
     for t in model_types:
         recover_model_type = frozen_model_type = t
@@ -714,7 +719,7 @@ def train_cifar10_early_exit():
             resnet = ResNet50.init_from_folder(folder_path='./resnet/results/%s_1' % recover_model_type)
 
         else:
-            resnet = ResNet50.init_from_folder(config_path='./resnet/configs/%s.json' % recover_model_type,
+            resnet = FrozenResNet50(config_path='./resnet/configs/%s.json' % recover_model_type,
                                     frozen_model_config_path='./resnet/configs/%s.json' % frozen_model_type,
                                     frozen_trainbale=False)
 
@@ -723,7 +728,10 @@ def train_cifar10_early_exit():
         print('Evaluating top output of %s' % recover_model_type)
         resnet.eval_cifar10()
         print('Training ee of %s' % recover_model_type)
-        resnet.train_cifar10_early_exit(training_save_dir='./resnet/ee_results')
+
+        pointwise_conv_filters = 128 if t == 'b20' else 256
+
+        resnet.train_cifar10_early_exit(training_save_dir='./resnet/ee_results', pointwise_conv_filters = pointwise_conv_filters)
 
 
 
