@@ -592,7 +592,7 @@ class ResNet50(object):
         ee2 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee3d').output,pointwise_conv_filters=512),'ee3d')
         ee3 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee4f').output,pointwise_conv_filters=512),'ee4f')
 
-        ee_model = Model(self.model.inputs, [ee1,ee2,ee3])
+        ee_model = Model(self.model.inputs, [ee1,ee2,ee3], name=self.config['model']['name'])
         self.model = ee_model
 
     def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epochs=None):
