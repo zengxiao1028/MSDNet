@@ -352,7 +352,7 @@ class FrozenResNet50(ResNet50):
             return K.relu(x, max_value=6)
 
         def _depthwise_conv_block(inputs, pointwise_conv_filters,
-                                  depth_multiplier=4, strides=(1, 1), block_id=1):
+                                  depth_multiplier=1, strides=(1, 1), block_id=1):
 
             channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
 
@@ -370,18 +370,16 @@ class FrozenResNet50(ResNet50):
                                 padding='same',
                                 depth_multiplier=depth_multiplier,
                                 strides=strides,
-                                use_bias=False,
-                                name='conv_dw_%d' % block_id)(x)
-            x = BatchNormalization(axis=channel_axis, name='conv_dw_%d_bn' % block_id)(x)
-            x = Activation(relu6, name='conv_dw_%d_relu' % block_id)(x)
+                                use_bias=False)(x)
+            x = BatchNormalization(axis=channel_axis)(x)
+            x = Activation(relu6)(x)
 
             x = Conv2D(pointwise_conv_filters, (1, 1),
                        padding='same',
                        use_bias=False,
-                       strides=(1, 1),
-                       name='conv_pw_%d' % block_id)(x)
-            x = BatchNormalization(axis=channel_axis, name='conv_pw_%d_bn' % block_id)(x)
-            return Activation(relu6, name='conv_pw_%d_relu' % block_id)(x)
+                       strides=(1, 1))(x)
+            x = BatchNormalization(axis=channel_axis)(x)
+            return Activation(relu6)(x)
 
         def _create_ouput(x, ee_name):
 
@@ -389,7 +387,7 @@ class FrozenResNet50(ResNet50):
             x = Reshape((1,1,-1),)(x)
             x = Conv2D(self.config['model']['classes'], (1, 1),
                        padding='same')(x)
-            x = Activation('softmax', name='act_softmax')(x)
+            x = Activation('softmax')(x)
             x = Reshape((self.config['model']['classes'],), name=ee_name+'_output')(x)
             return x
 
@@ -398,9 +396,9 @@ class FrozenResNet50(ResNet50):
         for layer in layers:
             layer.trainable = False
 
-        ee1 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee2c')),'ee2c')
-        ee2 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee3d')),'ee3d')
-        ee3 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee4f')),'ee4f')
+        ee1 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee2c').output,pointwise_conv_filters=512),'ee2c')
+        ee2 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee3d').output,pointwise_conv_filters=512),'ee3d')
+        ee3 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee4f').output,pointwise_conv_filters=512),'ee4f')
 
         ee_model = Model(self.model.inputs, [ee1,ee2,ee3])
         self.model = ee_model
@@ -833,15 +831,23 @@ def recover_imagenet():
 
 
 def train_cifar10_early_exit():
-    recover_model_type = frozen_model_type = 'b10'
-    resnet = FrozenResNet50(config_path='./resnet/configs/%s.json' % recover_model_type,
-                            frozen_model_config_path='./resnet/configs/%s.json' % frozen_model_type,
-                            frozen_trainbale=False)
-    resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % recover_model_type )
-    print('Evaluating top output of %s' % recover_model_type)
-    resnet.eval_cifar10()
-    print('Training ee of %s' % recover_model_type)
-    resnet.train_cifar10_early_exit(training_save_dir='./resnet/ee_results')
+
+    model_types = ['b20','b10','b0','50','80']
+
+    for t in model_types:
+        recover_model_type = frozen_model_type = t
+
+        if t =='b20':
+        resnet = FrozenResNet50(config_path='./resnet/configs/%s.json' % recover_model_type,
+                                frozen_model_config_path='./resnet/configs/%s.json' % frozen_model_type,
+                                frozen_trainbale=False)
+
+        resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % recover_model_type )
+
+        print('Evaluating top output of %s' % recover_model_type)
+        resnet.eval_cifar10()
+        print('Training ee of %s' % recover_model_type)
+        resnet.train_cifar10_early_exit(training_save_dir='./resnet/ee_results')
 
 
 
