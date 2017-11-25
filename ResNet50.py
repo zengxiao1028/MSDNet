@@ -668,10 +668,12 @@ class ResNet50(object):
 
 
     def train_imagenet(self, training_save_dir='./resnet/imagenet/results', epochs = None):
+
         epochs = epochs if epochs is not None else self.config['train']['epochs']
         train_generator, validation_generator = imagenet_generator.data_generator('./dataset/imagenet/train/',
                                                                    './dataset/imagenet/val/',
-                                                                   self.config['train']['batch_size'])
+                                                                   self.config['train']['batch_size'],
+                                                                  top_n_classes=self.config['model']['classes'])
 
         #### comppile model ########
         opt = adam(lr=1e-4)
@@ -707,10 +709,10 @@ class ResNet50(object):
         train_images_num = 1281167
 
         self.model.fit_generator(generator=train_generator,
-                                 steps_per_epoch=train_images_num // self.config['train']['batch_size'],
+                                 steps_per_epoch= train_generator.samples // self.config['train']['batch_size'],
                                  epochs=epochs,
                                  validation_data=validation_generator,
-                                 validation_steps= 50000 // self.config['train']['batch_size'] * 0.2,
+                                 validation_steps= validation_generator.samples // self.config['train']['batch_size'],
                                  callbacks=[best_checkpoint, checkpoint, tensorboard],
                                  max_queue_size=64)
 
@@ -719,13 +721,13 @@ class ResNet50(object):
 
         _, validation_generator = imagenet_generator.data_generator('./dataset/imagenet/train/',
                                                                    './dataset/imagenet/val/',
-                                                                   self.config['train']['batch_size']
-                                                     ,classes)
+                                                                   self.config['train']['batch_size'],
+                                                     top_n_classes=self.config['model']['classes'])
 
         opt = adam(lr=1e-4)
         self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
         if steps is None:
-            steps = 50000 // self.config['train']['batch_size']
+            steps = validation_generator.samples // self.config['train']['batch_size']
         evaluation = self.model.evaluate_generator(validation_generator,
                                                    steps=steps)
         print(evaluation)
@@ -901,10 +903,16 @@ def main_cifar10():
 
 def main_imagenet():
 
+
     resnet100 = ResNet50('./resnet/imagenet/configs/100.json')
-    #resnet100.eval_imagenet()
+    resnet100.eval_imagenet()
     resnet100.train_imagenet()
-    #
+
+    models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
+
+    for i in range(0,len(models)):
+        print('Training resnet%s for imagenet' % models[i+1])
+
     # print('##### Training resnet90 #####')
     # trimmer = Trimmer('./resnet/imagenet/results/100_1','./resnet/imagenet/configs/90.json')
     # trimmer.trim()
