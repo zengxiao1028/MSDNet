@@ -103,7 +103,7 @@ class ResNet50(object):
         x = BatchNormalization(axis=bn_axis, name=bn_name_base + '2c')(x)
 
         x = layers.add([x, input_tensor])
-        x = Activation('relu')(x)
+        x = Activation('relu',name='ee'+ str(stage) + block)(x)
         return x
 
     def conv_block(self,input_tensor, kernel_size, filters, stage, block, strides=(2, 2)):
