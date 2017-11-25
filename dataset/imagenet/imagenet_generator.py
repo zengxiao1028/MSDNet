@@ -1,11 +1,17 @@
 from keras.applications.imagenet_utils import preprocess_input
 from keras.preprocessing.image import ImageDataGenerator
-
+import csv
 #
 # create image data generator from directory for imagenet
-# classes: which classes are used in the dataset. We only consider top 50 popular classesx
 #
-def data_generator(train_dir, val_dir, batch_size, classes=None):
+def data_generator(train_dir, val_dir, batch_size, top_n_classes=-1):
+
+    classes = None
+    if top_n_classes > 1:
+        with open('dataset/imagenet/imagenet_classes.csv') as f:
+            lines = f.readlines()[:top_n_classes]
+            classes = [each.split(',')[0] for each in lines ]
+
 
     ### prepare dataset #####
     train_datagen = ImageDataGenerator(
@@ -37,4 +43,4 @@ def data_generator(train_dir, val_dir, batch_size, classes=None):
     return train_generator, validation_generator
 
 if __name__ == '__main__':
-    pass
+    data_generator('','',5,10)
