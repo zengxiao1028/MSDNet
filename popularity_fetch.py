@@ -7,7 +7,7 @@ def open_tabs(classes_list):
 
     ks = list(range(0,500,50))          # [0,50,100,150,200,250,300,350,400,450]
 
-    k = ks[0] # change this from 0 to 9, every time open 50 tabs
+    k = ks[7] # change this from 0 to 9, every time open 50 tabs
 
     for i in range(k, k + 50):
        webbrowser.open_new_tab('http://image-net.org/synset?wnid=%s' % wnids[i])

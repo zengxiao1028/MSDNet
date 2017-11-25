@@ -582,11 +582,12 @@ class ResNet50(object):
             x = Reshape((self.config['model']['classes'],), name=ee_name+'_output')(x)
             return x
 
-
+        print('freezing original model...')
         layers = self.model.layers
         for layer in layers:
             layer.trainable = False
 
+        print('creating early exit...')
         ee1 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee2c').output,pointwise_conv_filters=512),'ee2c')
         ee2 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee3d').output,pointwise_conv_filters=512),'ee3d')
         ee3 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee4f').output,pointwise_conv_filters=512),'ee4f')
