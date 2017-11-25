@@ -26,8 +26,7 @@ from keras.legacy import interfaces
 from keras.engine.topology import InputSpec
 from ResNet50 import ResNet50
 from keras.models import load_model
-from keras.applications.mobilenet import DepthwiseConv2D
-from keras.layers import Reshape
+
 class FrozenResNet50(ResNet50):
 
 
@@ -346,133 +345,7 @@ class FrozenResNet50(ResNet50):
                               'at ~/.keras/keras.json.')
         return model
 
-    def build_early_exit_model(self):
 
-        def relu6(x):
-            return K.relu(x, max_value=6)
-
-        def _depthwise_conv_block(inputs, pointwise_conv_filters,
-                                  depth_multiplier=1, strides=(1, 1), block_id=1):
-
-            channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
-
-            x = inputs
-
-            # x = Conv2D(pointwise_conv_filters, (1, 1),
-            #            padding='same',
-            #            use_bias=False,
-            #            strides=(1, 1),
-            #            name='conv_pre_pw_%d' % block_id)(inputs)
-            # x = BatchNormalization(axis=channel_axis, name='conv_pre_pw_%d_bn' % block_id)(x)
-            # x = Activation(relu6, name='conv_pre_pw_%d_relu' % block_id)(x)
-
-            x = DepthwiseConv2D((3, 3),
-                                padding='same',
-                                depth_multiplier=depth_multiplier,
-                                strides=strides,
-                                use_bias=False)(x)
-            x = BatchNormalization(axis=channel_axis)(x)
-            x = Activation(relu6)(x)
-
-            x = Conv2D(pointwise_conv_filters, (1, 1),
-                       padding='same',
-                       use_bias=False,
-                       strides=(1, 1))(x)
-            x = BatchNormalization(axis=channel_axis)(x)
-            return Activation(relu6)(x)
-
-        def _create_ouput(x, ee_name):
-
-            x = GlobalAveragePooling2D()(x)
-            x = Reshape((1,1,-1),)(x)
-            x = Conv2D(self.config['model']['classes'], (1, 1),
-                       padding='same')(x)
-            x = Activation('softmax')(x)
-            x = Reshape((self.config['model']['classes'],), name=ee_name+'_output')(x)
-            return x
-
-
-        layers = self.model.layers
-        for layer in layers:
-            layer.trainable = False
-
-        ee1 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee2c').output,pointwise_conv_filters=512),'ee2c')
-        ee2 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee3d').output,pointwise_conv_filters=512),'ee3d')
-        ee3 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee4f').output,pointwise_conv_filters=512),'ee4f')
-
-        ee_model = Model(self.model.inputs, [ee1,ee2,ee3])
-        self.model = ee_model
-
-    def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epochs=None):
-        epochs = epochs if epochs is not None else self.config['train']['epochs']
-
-        def resize(gen):
-            """
-            resize image to 224 x 224
-            change to one-hot
-            """
-            while True:
-                imgs, y = gen.next()
-                img = np.array([scipy.misc.imresize(imgs[i, ...], (224, 224)) for i in range(imgs.shape[0])])
-
-                yield (img, [y]*3)
-
-        ### prepare dataset #####
-        (x_train, y_train), (x_test, y_test) = cifar10.load_data()
-        train_datagen = ImageDataGenerator(
-            preprocessing_function=preprocess_input,
-            shear_range=0.1,
-            horizontal_flip=True,
-            rotation_range=30.,
-            width_shift_range=0.1,
-            height_shift_range=0.1)
-
-        train_generator = resize(train_datagen.flow(x_train, y_train,
-                                                    batch_size=self.config['train']['batch_size']))
-
-        test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-
-        validation_generator = resize(test_datagen.flow(x_test, y_test,
-                                                        batch_size=self.config['train']['batch_size']))
-
-        #### comppile model ########
-        opt = adam(lr=1e-4)
-        self.build_early_exit_model()
-        self.model.compile(opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-        self.model.summary()
-        #### prepare training ########
-        name = self.model.name
-        os.makedirs(training_save_dir, exist_ok=True)
-        result_counter = len([log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
-        saved_dir = os.path.join(training_save_dir, name + '_' + str(result_counter))
-        os.makedirs(saved_dir, exist_ok=True)
-        shutil.copyfile(self.config_path, os.path.join(saved_dir, self.config_path.split('/')[-1]))
-        best_checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '_best.h5'),
-                                          monitor='val_acc',
-                                          verbose=1,
-                                          save_best_only=True,
-                                          mode='max',
-                                          period=1)
-
-        checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '.h5'),
-                                     monitor='val_acc',
-                                     verbose=1,
-                                     save_best_only=False,
-                                     mode='max',
-                                     period=1)
-
-        tensorboard = TensorBoard(log_dir=saved_dir,
-                                  histogram_freq=0,
-                                  write_graph=True,
-                                  write_images=False)
-
-        self.model.fit_generator(generator=train_generator,
-                                 steps_per_epoch=x_train.shape[0] // self.config['train']['batch_size'],
-                                 epochs=epochs,
-                                 validation_data=validation_generator,
-                                 validation_steps=x_test.shape[0] // self.config['train']['batch_size'],
-                                 callbacks=[best_checkpoint, checkpoint, tensorboard],
-                                 max_queue_size=64)
 
 class FrozenConv2D(Conv2D):
 
@@ -838,11 +711,14 @@ def train_cifar10_early_exit():
         recover_model_type = frozen_model_type = t
 
         if t =='b20':
-        resnet = FrozenResNet50(config_path='./resnet/configs/%s.json' % recover_model_type,
-                                frozen_model_config_path='./resnet/configs/%s.json' % frozen_model_type,
-                                frozen_trainbale=False)
+            resnet = ResNet50.init_from_folder(folder_path='./resnet/results/%s_1' % recover_model_type)
 
-        resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % recover_model_type )
+        else:
+            resnet = ResNet50.init_from_folder(config_path='./resnet/configs/%s.json' % recover_model_type,
+                                    frozen_model_config_path='./resnet/configs/%s.json' % frozen_model_type,
+                                    frozen_trainbale=False)
+
+            resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' % recover_model_type )
 
         print('Evaluating top output of %s' % recover_model_type)
         resnet.eval_cifar10()
