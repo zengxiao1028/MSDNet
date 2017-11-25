@@ -27,7 +27,7 @@ from keras.engine.topology import InputSpec
 from ResNet50 import ResNet50
 from keras.models import load_model
 from keras.applications.mobilenet import DepthwiseConv2D
-
+from keras.layers import Reshape
 class FrozenResNet50(ResNet50):
 
 
@@ -351,11 +351,10 @@ class FrozenResNet50(ResNet50):
         def relu6(x):
             return K.relu(x, max_value=6)
 
-        def _depthwise_conv_block(inputs, pointwise_conv_filters, alpha,
-                                  depth_multiplier=1, strides=(1, 1), block_id=1):
+        def _depthwise_conv_block(inputs, pointwise_conv_filters,
+                                  depth_multiplier=4, strides=(1, 1), block_id=1):
 
             channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
-            pointwise_conv_filters = int(pointwise_conv_filters * alpha)
 
             x = inputs
 
@@ -384,31 +383,27 @@ class FrozenResNet50(ResNet50):
             x = BatchNormalization(axis=channel_axis, name='conv_pw_%d_bn' % block_id)(x)
             return Activation(relu6, name='conv_pw_%d_relu' % block_id)(x)
 
-        def _create_ouput(x):
-            if K.image_data_format() == 'channels_first':
-                shape = (-1, 1, 1)
-            else:
-                shape = (1, 1, int(1024 * alpha))
+        def _create_ouput(x, ee_name):
 
             x = GlobalAveragePooling2D()(x)
-            x = Reshape(shape, name='reshape_1')(x)
-            x = Dropout(dropout, name='dropout')(x)
-            x = Conv2D(classes, (1, 1),
-                       padding='same', name='conv_preds')(x)
+            x = Reshape((1,1,-1),)(x)
+            x = Conv2D(self.config['model']['classes'], (1, 1),
+                       padding='same')(x)
             x = Activation('softmax', name='act_softmax')(x)
-            x = Reshape((classes,), name='reshape_2')(x)
-            return x = GlobalAveragePooling2D()(x)
+            x = Reshape((self.config['model']['classes'],), name=ee_name+'_output')(x)
+            return x
 
 
         layers = self.model.layers
         for layer in layers:
             layer.trainable = False
 
-        ee1 = self.model.get_layer('ee2c')
-        ee2 = self.model.get_layer('ee3d')
-        ee3 = self.model.get_layer('ee4f')
+        ee1 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee2c')),'ee2c')
+        ee2 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee3d')),'ee3d')
+        ee3 = _create_ouput(_depthwise_conv_block(self.model.get_layer('ee4f')),'ee4f')
 
-
+        ee_model = Model(self.model.inputs, [ee1,ee2,ee3])
+        self.model = ee_model
 
     def train_cifar10_early_exit(self, training_save_dir='./resnet/ee_results', epochs=None):
         epochs = epochs if epochs is not None else self.config['train']['epochs']
@@ -422,7 +417,7 @@ class FrozenResNet50(ResNet50):
                 imgs, y = gen.next()
                 img = np.array([scipy.misc.imresize(imgs[i, ...], (224, 224)) for i in range(imgs.shape[0])])
 
-                yield (img, y)
+                yield (img, [y]*3)
 
         ### prepare dataset #####
         (x_train, y_train), (x_test, y_test) = cifar10.load_data()
