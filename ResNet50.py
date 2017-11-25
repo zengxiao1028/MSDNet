@@ -915,8 +915,9 @@ def main_imagenet():
         trimmer = Trimmer('./resnet/imagenet/results/%s_1' % models[i],'./resnet/imagenet/configs/%s.json' % models[i+1])
         trimmer.trim()
         resnet = ResNet50.init_from_folder('./resnet/imagenet/trimmed_models/%s' % models[i+1])
-        resnet.eval_cifar10()
-        resnet.train_cifar10()
+        resnet.eval_imagenet()
+        resnet.train_imagenet()
+
 
 
 
