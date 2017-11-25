@@ -706,7 +706,6 @@ class ResNet50(object):
                                   write_graph=True,
                                   write_images=False)
 
-        train_images_num = 1281167
 
         self.model.fit_generator(generator=train_generator,
                                  steps_per_epoch= train_generator.samples // self.config['train']['batch_size'],
