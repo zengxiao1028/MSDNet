@@ -903,13 +903,13 @@ def main_cifar10():
 def main_imagenet():
 
 
-    resnet100 = ResNet50('./resnet/imagenet/configs/100.json')
-    resnet100.eval_imagenet()
-    resnet100.train_imagenet()
+    # resnet100 = ResNet50('./resnet/imagenet/configs/100.json')
+    # resnet100.eval_imagenet()
+    # resnet100.train_imagenet()
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
-    for i in range(0,len(models)-1):
+    for i in range(6,len(models)-1):
         print('Training resnet%s for imagenet' % models[i+1])
 
         trimmer = Trimmer('./resnet/imagenet/results/%s_1' % models[i],'./resnet/imagenet/configs/%s.json' % models[i+1])

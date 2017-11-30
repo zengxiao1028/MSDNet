@@ -680,25 +680,29 @@ def recover_cifar10(frozen_trainable=False):
             training_save_dir='./resnet/%s/' % save_dir,epochs=100)
 
 
-def recover_imagenet():
+def recover_imagenet(frozen_trainable=False):
 
     model_types = [
-        ('b20', 'b10'),
-        ('b10', 'b0'),
-        ('b0', '50'),
+        ('40', '50'),
         ('50', '80'),
+        ('80', '90'),
+        ('90', '80'),
     ]
     for idx, types in enumerate(model_types):
+        K.clear_session()
         frozen_model_type, recover_model_type = types
-        resnet = FrozenResNet50(config_path='./resnet/imagenet/configs/%s.json' % recover_model_type,
-                                frozen_model_config_path='./resnet/imagenet/configs/%.json' % frozen_model_type)
+        resnet = FrozenResNet50(config_path = './resnet/configs/%s.json' % recover_model_type,
+                                frozen_model_config_path = './resnet/configs/%s.json' % frozen_model_type,
+                                frozen_trainbale = frozen_trainable)
 
-        if idx == 0:
-            resnet.load_frozen_aug_weights('./resnet/imagenet/results/%s_1' % frozen_model_type)
+        save_dir = 'recover_results' if frozen_trainable is False else 'unfreeze_recover_results'
+        if frozen_model_type == 'b20':
+            resnet.load_frozen_aug_weights('./resnet/results/%s_1' % frozen_model_type)
         else:
-            resnet.load_frozen_aug_weights('./resnet/imagenet/recover_results/%s_1' % frozen_model_type)
+            resnet.load_frozen_aug_weights('./resnet/recover_results/%s_1' %  frozen_model_type )
 
-        resnet.train_imagenet(training_save_dir='./resnet/imagenet/recover_results/')
+        resnet.train_cifar10(
+            training_save_dir='./resnet/%s/' % save_dir,epochs=100)
 
 
 
@@ -737,6 +741,5 @@ def train_cifar10_early_exit():
 
 if __name__ == '__main__':
     #recover_cifar10(frozen_trainable=True)
-
-    train_cifar10_early_exit()
+    #train_cifar10_early_exit()
 
