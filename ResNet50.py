@@ -69,7 +69,7 @@ class ResNet50(object):
             config = json.load(config_buffer)
 
         resnet = cls(original_config_path,
-                          os.path.join(folder_path, config['model']['name'] + '.h5'))
+                          os.path.join(folder_path,  config['model']['name'] + '_best.h5'))
         return resnet
 
     def identity_block(self,input_tensor, kernel_size, filters, stage, block):

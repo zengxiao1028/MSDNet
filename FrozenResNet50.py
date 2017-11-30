@@ -75,7 +75,7 @@ class FrozenResNet50(ResNet50):
         with open(original_config_path) as config_buffer:
             config = json.load(config_buffer)
 
-        frozen_model_path = os.path.join(frozen_model_folder, config['model']['name'] + '.h5')
+        frozen_model_path = os.path.join(frozen_model_folder,  config['model']['name'] + '_best.h5')
         #frozen_model = load_model(frozen_model_path,custom_objects={'FrozenConv2D':FrozenConv2D, 'FrozenDense':FrozenDense})
         with h5py.File(frozen_model_path, mode='r') as f:
             frozen_model_weights = f['model_weights']
@@ -103,7 +103,7 @@ class FrozenResNet50(ResNet50):
                     layer.set_weights( weights[:-2] + frozen_weights )
 
                 else:
-                    layer.set_weights(frozen_weights)
+                    layer.set_weights(weights)
 
 
 
@@ -683,10 +683,10 @@ def recover_cifar10(frozen_trainable=False):
 def recover_imagenet(frozen_trainable=False):
 
     model_types = [
-        ('40', '50'),
+        ('b20', 'b10'),
+        ('b10', '20'),
+        ('20', '50'),
         ('50', '80'),
-        ('80', '90'),
-        ('90', '80'),
     ]
     for idx, types in enumerate(model_types):
         K.clear_session()
@@ -744,5 +744,5 @@ if __name__ == '__main__':
     #train_cifar10_early_exit()
 
     recover_imagenet(frozen_trainable=False)
-    recover_imagenet(frozen_trainable=True)
+    #recover_imagenet(frozen_trainable=True)
 
