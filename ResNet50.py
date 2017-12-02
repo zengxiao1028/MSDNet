@@ -736,6 +736,97 @@ class ResNet50(object):
         print(evaluation)
         return evaluation
 
+    def train_GTSRB(self, training_save_dir='./resnet/GTSRB/results', epochs = None):
+
+        epochs = epochs if epochs is not None else self.config['train']['epochs']
+
+        train_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input,
+            shear_range=0.1,
+            zoom_range=0.2,
+            horizontal_flip=False,
+            rotation_range=10.,
+            width_shift_range=0.1,
+            height_shift_range=0.1)
+
+        train_generator = train_datagen.flow_from_directory(
+            './dataset/GTSRB/train224/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical'
+        )
+
+        test_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
+
+        validation_generator = test_datagen.flow_from_directory(
+            './dataset/GTSRB/test224/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
+
+
+
+        #### comppile model ########
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        self.model.summary()
+        #### prepare training ########
+        name = self.model.name
+        os.makedirs(training_save_dir, exist_ok=True)
+        result_counter = len(
+            [log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
+        saved_dir = os.path.join(training_save_dir, name + '_' + str(result_counter))
+        os.makedirs(saved_dir, exist_ok=True)
+        shutil.copyfile(self.config_path, os.path.join(saved_dir, self.config_path.split('/')[-1]))
+        best_checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '_best.h5'),
+                                          monitor='val_acc',
+                                          verbose=1,
+                                          save_best_only=True,
+                                          mode='max',
+                                          period=1)
+
+        checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '.h5'),
+                                     monitor='val_acc',
+                                     verbose=1,
+                                     save_best_only=False,
+                                     mode='max',
+                                     period=1)
+
+        tensorboard = TensorBoard(log_dir=saved_dir,
+                                  histogram_freq=0,
+                                  write_graph=True,
+                                  write_images=False)
+
+
+        self.model.fit_generator(generator=train_generator,
+                                 steps_per_epoch= train_generator.samples // self.config['train']['batch_size'],
+                                 epochs=epochs,
+                                 validation_data=validation_generator,
+                                 validation_steps= validation_generator.samples // self.config['train']['batch_size'],
+                                 callbacks=[best_checkpoint, checkpoint, tensorboard],
+                                 max_queue_size=64)
+
+    def eval_GTSRB(self, steps=None):
+
+        test_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
+
+        validation_generator = test_datagen.flow_from_directory(
+            './dataset/GTSRB/test224/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
+
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        if steps is None:
+            steps = validation_generator.samples // self.config['train']['batch_size']
+        evaluation = self.model.evaluate_generator(validation_generator,
+                                                   steps=steps)
+        print(evaluation)
+        return evaluation
+
 class Trimmer(object):
 
     def __init__(self, original_model_folder, target_config_path):
@@ -918,8 +1009,6 @@ def main_cifar10():
 def main_imagenet():
 
 
-
-
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
     for i in range(6,len(models)-1):
@@ -931,13 +1020,25 @@ def main_imagenet():
         resnet.eval_imagenet()
         resnet.train_imagenet()
 
+def main_GTSRB():
 
+    resnet100 = ResNet50('./resnet/GTSRB/configs/100.json')
+    resnet100.eval_imagenet()
+    resnet100.train_imagenet()
+
+    models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
+
+    for i in range(0,len(models)-1):
+        print('Training resnet%s for GTSRB' % models[i+1])
+
+        trimmer = Trimmer('./resnet/GTSRB/results/%s_1' % models[i],'./resnet/GTSRB/configs/%s.json' % models[i+1])
+        trimmer.trim(trim_folder = './resnet/GTSRB/trimmed_models/')
+        resnet = ResNet50.init_from_folder('./resnet/GTSRB/trimmed_models/%s' % models[i+1])
+        resnet.eval_GTSRB()
+        resnet.train_GTSRB()
 
 
 
 if __name__ == '__main__':
-    resnet100 = ResNet50('./resnet/imagenet/configs/100.json')
-    resnet100.eval_imagenet()
-    resnet100.train_imagenet()
-    #main_imagenet()
+    main_GTSRB()
 
