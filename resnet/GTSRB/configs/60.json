@@ -21,7 +21,7 @@
                                 [256,128,1024]],
         "name":                  "60",
         "weights":                "",
-        "classes":                10,
+        "classes":                43,
         "include_top":            true
     },
 
