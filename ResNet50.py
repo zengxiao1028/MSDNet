@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 from keras.layers import Conv2D,BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -24,6 +24,7 @@ WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/downlo
 WEIGHTS_PATH_NO_TOP = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5'
 from keras.legacy import interfaces
 from keras.engine.topology import InputSpec
+from keras.callbacks import Callback
 from keras.applications.mobilenet import DepthwiseConv2D
 from keras.layers import Reshape
 from dataset.imagenet import imagenet_generator
@@ -501,12 +502,15 @@ class ResNet50(object):
                                   write_graph=True,
                                   write_images=False)
 
+        periodic_saver = PeriodicSaver(self.model,
+                                       os.path.join(saved_dir, self.model.name + '_%03d.h5'), N=5)
+
         self.model.fit_generator(generator=train_generator,
                                 steps_per_epoch= x_train.shape[0] // self.config['train']['batch_size'],
                                 epochs=epochs,
                                 validation_data=validation_generator,
                                 validation_steps=x_test.shape[0] // self.config['train']['batch_size'],
-                                callbacks=[best_checkpoint, checkpoint,tensorboard],
+                                callbacks=[best_checkpoint, checkpoint,tensorboard,periodic_saver],
                                 max_queue_size=64)
 
     def eval_cifar10(self,steps=None):
@@ -785,6 +789,17 @@ class Trimmer(object):
 
         keras.backend.clear_session()
 
+class PeriodicSaver(Callback):
+
+    def __init__(self, model, save_path, N=5):
+        self.model = model
+        self.save_path = save_path # 'weights%08d.h5'
+        self.N = N
+
+    def on_epoch_end(self, epoch, logs=None):
+        if (epoch+1) % self.N == 0:
+            name = self.save_path % epoch
+            self.model.save(name)
 
 def main_cifar10():
     # resnet100 = ResNet50('./resnet/configs/100.json')
@@ -903,9 +918,7 @@ def main_cifar10():
 def main_imagenet():
 
 
-    # resnet100 = ResNet50('./resnet/imagenet/configs/100.json')
-    # resnet100.eval_imagenet()
-    # resnet100.train_imagenet()
+
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
@@ -923,5 +936,8 @@ def main_imagenet():
 
 
 if __name__ == '__main__':
-    main_imagenet()
+    resnet100 = ResNet50('./resnet/imagenet/configs/100.json')
+    resnet100.eval_imagenet()
+    resnet100.train_imagenet()
+    #main_imagenet()
 

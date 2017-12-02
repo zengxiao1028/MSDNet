@@ -26,7 +26,7 @@ from keras.legacy import interfaces
 from keras.engine.topology import InputSpec
 from ResNet50 import ResNet50
 from keras.models import load_model
-
+from keras.regularizers import l2
 class FrozenResNet50(ResNet50):
 
 
@@ -364,7 +364,7 @@ class FrozenConv2D(Conv2D):
                  #kernel_initializer='zeros',
                  kernel_initializer='truncated_normal',
                  bias_initializer='zeros',
-                 kernel_regularizer=None,
+                 kernel_regularizer=l2(0.0001),
                  bias_regularizer=None,
                  activity_regularizer=None,
                  kernel_constraint=None,
@@ -658,9 +658,9 @@ class FrozenBatchNormalization(BatchNormalization):
 def recover_cifar10(frozen_trainable=False):
 
     model_types = [
-        #('b20', 'b10'),
-        ('b10', 'b0'),
-        ('b0', '50'),
+        ('b20', '0'),
+        ('0', '20'),
+        ('20', '50'),
         ('50', '80'),
     ]
     for idx, types in enumerate(model_types):
@@ -683,7 +683,7 @@ def recover_cifar10(frozen_trainable=False):
 def recover_imagenet(frozen_trainable=False):
 
     model_types = [
-        ('b20', 'b10'),
+        #('b20', 'b10'),
         ('b10', '20'),
         ('20', '50'),
         ('50', '80'),
@@ -702,7 +702,8 @@ def recover_imagenet(frozen_trainable=False):
             resnet.load_frozen_aug_weights('./resnet/imagenet/recover_results/%s_1' %  frozen_model_type )
 
         resnet.train_cifar10(
-            training_save_dir='./resnet/imagenet/%s/' % save_dir,epochs=100)
+            training_save_dir='./resnet/imagenet/%s/' % save_dir,epochs=60)
+
 
 
 
@@ -740,9 +741,9 @@ def train_cifar10_early_exit():
 
 
 if __name__ == '__main__':
-    #recover_cifar10(frozen_trainable=True)
+    recover_cifar10(frozen_trainable=False)
     #train_cifar10_early_exit()
 
-    recover_imagenet(frozen_trainable=False)
+    #recover_imagenet(frozen_trainable=False)
     #recover_imagenet(frozen_trainable=True)
 
