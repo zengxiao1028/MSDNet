@@ -1,9 +1,12 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
+from tensorflow.python.framework import graph_util
+from tensorflow.python.framework import graph_io
 from keras.layers import Conv2D,BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
+import tensorflow as tf
 from keras.models import Model
 from keras.callbacks import ModelCheckpoint,TensorBoard
 from keras.datasets import cifar10
@@ -27,6 +30,7 @@ from keras.engine.topology import InputSpec
 from keras.callbacks import Callback
 from keras.applications.mobilenet import DepthwiseConv2D
 from keras.layers import Reshape
+from keras.models import load_model
 from dataset.imagenet import imagenet_generator
 class ResNet50(object):
 
@@ -61,7 +65,7 @@ class ResNet50(object):
                 self.model.load_weights(self.config['model']['weights'])
 
     @classmethod
-    def init_from_folder(cls,folder_path):
+    def init_from_folder(cls,folder_path, best_only = True):
         original_config_paths = glob.glob(os.path.join(folder_path, '*.json'))
         assert len(original_config_paths) == 1
 
@@ -69,8 +73,9 @@ class ResNet50(object):
         with open(original_config_path) as config_buffer:
             config = json.load(config_buffer)
 
+        suffix =  '_best' if best_only else ''
         resnet = cls(original_config_path,
-                          os.path.join(folder_path,  config['model']['name'] + '_best.h5'))
+                          os.path.join(folder_path,  config['model']['name'] + '%s.h5' % suffix))
         return resnet
 
     def identity_block(self,input_tensor, kernel_size, filters, stage, block):
@@ -441,6 +446,20 @@ class ResNet50(object):
 
         return last_pos
 
+    def compute_flops(self):
+        sum = 0
+        for layer in self.model.layers:
+            if type(layer) is Conv2D:
+                p1 = layer.input.get_shape().as_list()[1:]
+                p2 = layer.output.get_shape().as_list()[-1:]
+                p3 = list(layer.kernel_size)
+                sum += np.product(p1+p2+p3)
+            elif type(layer) is Dense:
+                sum += np.product (layer.kernel.get_shape().as_list() )
+
+        return sum
+
+
     def train_cifar10(self, training_save_dir = './resnet/results', epochs = None):
         epochs = epochs if epochs is not None else self.config['train']['epochs']
         def resize(gen):
@@ -670,6 +689,24 @@ class ResNet50(object):
                                  callbacks=[best_checkpoint, checkpoint, tensorboard],
                                  max_queue_size=64)
 
+    def save_to_pb(self, folder):
+        K.set_learning_phase(0)
+
+        num_output = len(self.model.outputs)
+
+        pred = [None] * num_output
+        pred_node_names = [None] * num_output
+        for i in range(num_output):
+            pred_node_names[i] = 'outnode' + str(i)
+            pred[i] = tf.identity(self.model.outputs[i], name=pred_node_names[i])
+        print('output nodes names are: ', pred_node_names)
+
+        sess = K.get_session()
+
+
+        constant_graph = graph_util.convert_variables_to_constants(sess, sess.graph.as_graph_def(), pred_node_names)
+        graph_io.write_graph(constant_graph, folder, self.model.name + '.pb', as_text=False)
+        print('saved the freezed graph (ready for inference) at: ', os.path.join(folder, self.model.name + '.pb'))
 
     def train_imagenet(self, training_save_dir='./resnet/imagenet/results', epochs = None):
 
@@ -715,7 +752,7 @@ class ResNet50(object):
                                  steps_per_epoch= train_generator.samples // self.config['train']['batch_size'],
                                  epochs=epochs,
                                  validation_data=validation_generator,
-                                 validation_steps= validation_generator.samples // self.config['train']['batch_size'],
+                                 validation_steps= (validation_generator.samples // self.config['train']['batch_size']) * 0.5,
                                  callbacks=[best_checkpoint, checkpoint, tensorboard],
                                  max_queue_size=64)
 
@@ -1008,37 +1045,87 @@ def main_cifar10():
 
 def main_imagenet():
 
+    # resnet100 = ResNet50('./resnet/imagenet/configs/100.json')
+    # resnet100.eval_imagenet()
+    # resnet100.train_imagenet()
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
-    for i in range(6,len(models)-1):
+    for i in range(3,len(models)-1):
         print('Training resnet%s for imagenet' % models[i+1])
 
         trimmer = Trimmer('./resnet/imagenet/results/%s_1' % models[i],'./resnet/imagenet/configs/%s.json' % models[i+1])
         trimmer.trim(trim_folder = './resnet/imagenet/trimmed_models/')
-        resnet = ResNet50.init_from_folder('./resnet/imagenet/trimmed_models/%s' % models[i+1])
-        resnet.eval_imagenet()
+        resnet = ResNet50.init_from_folder('./resnet/imagenet/trimmed_models/%s' % models[i+1], best_only=False)
         resnet.train_imagenet()
 
 def main_GTSRB():
 
-    resnet100 = ResNet50('./resnet/GTSRB/configs/100.json')
-    resnet100.eval_GTSRB()
-    resnet100.train_GTSRB()
+    # resnet100 = ResNet50('./resnet/GTSRB/configs/100.json')
+    # resnet100.eval_GTSRB()
+    # resnet100.train_GTSRB()
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
-    for i in range(0,len(models)-1):
+    for i in range(3,len(models)-1):
         print('Training resnet%s for GTSRB' % models[i+1])
 
         trimmer = Trimmer('./resnet/GTSRB/results/%s_1' % models[i],'./resnet/GTSRB/configs/%s.json' % models[i+1])
         trimmer.trim(trim_folder = './resnet/GTSRB/trimmed_models/')
-        resnet = ResNet50.init_from_folder('./resnet/GTSRB/trimmed_models/%s' % models[i+1])
+        resnet = ResNet50.init_from_folder('./resnet/GTSRB/trimmed_models/%s' % models[i+1],best_only=False)
         resnet.eval_GTSRB()
         resnet.train_GTSRB()
 
 
+def save_models_for_android():
+    model_root_folders = '/home/xiao/projects/MSDNet/resnet/results'
+
+    model_folders = os.listdir(model_root_folders)
+
+    for model_folder in model_folders:
+        if os.path.isdir(os.path.join(model_root_folders,model_folder)):
+            K.clear_session()
+            K.set_learning_phase(0)
+            resnet = ResNet50.init_from_folder(os.path.join(model_root_folders, model_folder), best_only=False)
+            resnet.model.summary()
+            resnet.save_to_pb('/home/xiao/projects/MSDNet/resnet/android_models')
+
+def main_flops():
+    models = ['100', '90', '80', '70', '60', '50', '40', '30', '20', '10', '0', 'b0', 'b10', 'b20']
+
+    for model in models:
+
+        resnet = ResNet50('./resnet/imagenet/configs/%s.json' % model)
+        resnet.model.summary()
+        flops = resnet.compute_flops()
+        print('{:.2f}'.format(flops/(1000**3)) )
+
+
+def main_vgg_flops():
+    folder = '/home/xiao/NestDNN/vgg4096'
+    for model_name in os.listdir(folder):
+        if model_name.find('.h5')>0:
+          if model_name.find('S20') > 0:
+            K.clear_session()
+            model = load_model(os.path.join(folder,model_name))
+            model.summary()
+
+            sum = 0
+            for layer in model.layers:
+                if type(layer) is Conv2D:
+                    p1 = layer.input.get_shape().as_list()[1:]
+                    p2 = layer.output.get_shape().as_list()[-1:]
+                    p3 = list(layer.kernel_size)
+                    sum += np.product(p1 + p2 + p3)
+                elif type(layer) is Dense:
+                    sum += np.product(layer.kernel.get_shape().as_list())
+
+            print(model_name +' GFLOPS:{:.2f}'.format(sum / (1000 ** 3)))
+
 
 if __name__ == '__main__':
-    main_GTSRB()
-
+    #main_GTSRB()
+    #main_flops()
+    main_imagenet()
+   # main_vgg_flops()
+    #save_models_for_android()

@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 from keras.layers import BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense,Conv2D
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -683,10 +683,10 @@ def recover_cifar10(frozen_trainable=False):
 def recover_imagenet(frozen_trainable=False):
 
     model_types = [
-        #('b20', 'b10'),
-        ('b10', '20'),
-        ('20', '50'),
-        ('50', '80'),
+        #('60', '70'),
+        #('70', '80'),
+        ('80', '90'),
+        ('90', '100'),
     ]
     for idx, types in enumerate(model_types):
         K.clear_session()
@@ -696,16 +696,38 @@ def recover_imagenet(frozen_trainable=False):
                                 frozen_trainbale = frozen_trainable)
 
         save_dir = 'recover_results' if frozen_trainable is False else 'unfreeze_recover_results'
-        if frozen_model_type == 'b20':
+        if frozen_model_type == '60':
             resnet.load_frozen_aug_weights('./resnet/imagenet/results/%s_1' % frozen_model_type)
         else:
             resnet.load_frozen_aug_weights('./resnet/imagenet/recover_results/%s_1' %  frozen_model_type )
 
         resnet.train_cifar10(
-            training_save_dir='./resnet/imagenet/%s/' % save_dir,epochs=60)
+            training_save_dir='./resnet/imagenet/%s/' % save_dir,epochs=50)
 
 
+def recover_GTSRB(frozen_trainable=False):
 
+    model_types = [
+        ('b20', 'b0'),
+        ('b0', '20'),
+        ('20', '40'),
+        ('40', '50'),
+    ]
+    for idx, types in enumerate(model_types):
+        K.clear_session()
+        frozen_model_type, recover_model_type = types
+        resnet = FrozenResNet50(config_path = './resnet/GTSRB/configs/%s.json' % recover_model_type,
+                                frozen_model_config_path = './resnet/GTSRB/configs/%s.json' % frozen_model_type,
+                                frozen_trainbale = frozen_trainable)
+
+        save_dir = 'recover_results' if frozen_trainable is False else 'unfreeze_recover_results'
+        if frozen_model_type == 'b20':
+            resnet.load_frozen_aug_weights('./resnet/GTSRB/results/%s_1' % frozen_model_type)
+        else:
+            resnet.load_frozen_aug_weights('./resnet/GTSRB/recover_results/%s_1' %  frozen_model_type )
+
+        resnet.train_cifar10(
+            training_save_dir='./resnet/GTSRB/%s/' % save_dir,epochs=50)
 
 
 def train_cifar10_early_exit():
@@ -741,9 +763,11 @@ def train_cifar10_early_exit():
 
 
 if __name__ == '__main__':
-    recover_cifar10(frozen_trainable=False)
+
+    #recover_cifar10(frozen_trainable=False)
     #train_cifar10_early_exit()
 
     #recover_imagenet(frozen_trainable=False)
-    #recover_imagenet(frozen_trainable=True)
+    recover_imagenet(frozen_trainable=True)
 
+    #recover_GTSRB(frozen_trainable=False)

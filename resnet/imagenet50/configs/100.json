@@ -20,8 +20,8 @@
                                 [512,512,2048],
                                 [512,512,2048]],
         "name":                  "100",
-        "weights":                "",
-        "classes":                100,
+        "weights":                "imagenet",
+        "classes":                50,
         "include_top":            true
 
     },
