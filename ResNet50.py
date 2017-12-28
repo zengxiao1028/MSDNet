@@ -858,7 +858,7 @@ class ResNet50(object):
             height_shift_range=0.1)
 
         train_generator = train_datagen.flow_from_directory(
-            './dataset/faces2/age/train/',
+            './dataset/age/faces2/train/',
             target_size=(224, 224),
             batch_size=self.config['train']['batch_size'],
             class_mode='categorical'
@@ -868,7 +868,7 @@ class ResNet50(object):
             preprocessing_function=preprocess_input)
 
         validation_generator = test_datagen.flow_from_directory(
-            './dataset/faces2/age/test/',
+            './dataset/age/faces2/test/',
             target_size=(224, 224),
             batch_size=self.config['train']['batch_size'],
             class_mode='categorical')
@@ -920,7 +920,7 @@ class ResNet50(object):
             preprocessing_function=preprocess_input)
 
         validation_generator = test_datagen.flow_from_directory(
-            './dataset/faces2/age/test/',
+            './dataset/age/faces2/test/',
             target_size=(224, 224),
             batch_size=self.config['train']['batch_size'],
             class_mode='categorical')
