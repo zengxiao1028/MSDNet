@@ -844,6 +844,96 @@ class ResNet50(object):
                                  callbacks=[best_checkpoint, checkpoint, tensorboard],
                                  max_queue_size=64)
 
+    def train_age(self, training_save_dir='./resnet/age/results', epochs = None):
+
+        epochs = epochs if epochs is not None else self.config['train']['epochs']
+
+        train_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input,
+            shear_range=0.1,
+            zoom_range=0.2,
+            horizontal_flip=False,
+            rotation_range=15.,
+            width_shift_range=0.1,
+            height_shift_range=0.1)
+
+        train_generator = train_datagen.flow_from_directory(
+            './dataset/age/train/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical'
+        )
+
+        test_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
+
+        validation_generator = test_datagen.flow_from_directory(
+            './dataset/age/test/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
+
+
+
+        #### comppile model ########
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        self.model.summary()
+        #### prepare training ########
+        name = self.model.name
+        os.makedirs(training_save_dir, exist_ok=True)
+        result_counter = len(
+            [log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
+        saved_dir = os.path.join(training_save_dir, name + '_' + str(result_counter))
+        os.makedirs(saved_dir, exist_ok=True)
+        shutil.copyfile(self.config_path, os.path.join(saved_dir, self.config_path.split('/')[-1]))
+        best_checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '_best.h5'),
+                                          monitor='val_acc',
+                                          verbose=1,
+                                          save_best_only=True,
+                                          mode='max',
+                                          period=1)
+
+        checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '.h5'),
+                                     monitor='val_acc',
+                                     verbose=1,
+                                     save_best_only=False,
+                                     mode='max',
+                                     period=1)
+
+        tensorboard = TensorBoard(log_dir=saved_dir,
+                                  histogram_freq=0,
+                                  write_graph=True,
+                                  write_images=False)
+
+
+        self.model.fit_generator(generator=train_generator,
+                                 steps_per_epoch= train_generator.samples // self.config['train']['batch_size'],
+                                 epochs=epochs,
+                                 validation_data=validation_generator,
+                                 validation_steps= validation_generator.samples // self.config['train']['batch_size'],
+                                 callbacks=[best_checkpoint, checkpoint, tensorboard],
+                                 max_queue_size=64)
+    def eval_age(self, steps=None):
+
+        test_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
+
+        validation_generator = test_datagen.flow_from_directory(
+            './dataset/age/test/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
+
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        if steps is None:
+            steps = validation_generator.samples // self.config['train']['batch_size']
+        evaluation = self.model.evaluate_generator(validation_generator,
+                                                   steps=steps)
+        print(evaluation)
+        return evaluation
+
     def eval_GTSRB(self, steps=None):
 
         test_datagen = ImageDataGenerator(
@@ -919,7 +1009,7 @@ class Trimmer(object):
 
 class PeriodicSaver(Callback):
 
-    def __init__(self, model, save_path, N=5):
+    def __init__(self, model, save_path, N=10):
         self.model = model
         self.save_path = save_path # 'weights%08d.h5'
         self.N = N
@@ -1076,6 +1166,23 @@ def main_GTSRB():
         resnet.eval_GTSRB()
         resnet.train_GTSRB()
 
+def main_age():
+
+    resnet100 = ResNet50('./resnet/age/configs/100.json')
+    resnet100.eval_age()
+    resnet100.train_age()
+
+    models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
+
+    for i in range(3,len(models)-1):
+        print('Training resnet%s for age' % models[i+1])
+
+        trimmer = Trimmer('./resnet/age/results/%s_1' % models[i],'./resnet/age/configs/%s.json' % models[i+1])
+        trimmer.trim(trim_folder = './resnet/age/trimmed_models/')
+        resnet = ResNet50.init_from_folder('./resnet/age/trimmed_models/%s' % models[i+1],best_only=False)
+        resnet.eval_age()
+        resnet.train_age()
+
 
 def save_models_for_android():
     model_root_folders = '/home/xiao/projects/MSDNet/resnet/results'
@@ -1126,6 +1233,7 @@ def main_vgg_flops():
 if __name__ == '__main__':
     #main_GTSRB()
     #main_flops()
-    main_imagenet()
+    #main_imagenet()
+    main_age()
    # main_vgg_flops()
     #save_models_for_android()
