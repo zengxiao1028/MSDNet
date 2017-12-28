@@ -28,7 +28,7 @@
 
     "train": {
         "batch_size":         40,
-        "epochs":             5
+        "epochs":             10
     }
 
 
