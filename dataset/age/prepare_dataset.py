@@ -4,7 +4,7 @@ from shutil import copyfile
 
 labels = {'(0, 2)':'0',
           '(4, 6)': '1',
-          '(8, 13)': '2',
+          '(8, 12)': '2',
           '(15, 20)': '3',
           '(25, 32)': '4',
           '(38, 43)': '5',
@@ -12,17 +12,23 @@ labels = {'(0, 2)':'0',
           '(60, 100)': '7',}
 def main():
 
-    scr_folder = ''
-    dst_folder = ''
-    with open('fold_0_data.txt') as f:
+    scr_folder = '/storage/faceage/faces'
+    dst_folder = '/storage/faceage/faces2/train'
+
+    with open('fold_4_data.txt') as f:
         lines = f.readlines()
+        print(len(lines))
         for idx,line in enumerate(lines):
             if idx ==0:
                 continue
             else:
-                items = line.split()
+                items = line.split('\t')
                 image_path = items[0] + '/coarse_tilt_aligned_face.' + items[2] + '.' + items[1]
-                label = labels[items[3]]
+                if items[3] in labels.keys():
+                    label = labels[items[3]]
+                else:
+                    print('no label')
+                    continue
 
                 save_folder = os.path.join(dst_folder,label)
                 os.makedirs(save_folder, exist_ok=True)
