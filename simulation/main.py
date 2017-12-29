@@ -32,6 +32,24 @@ resnet50_imagenet100_configs = [
                    ('60', 2.03,  42,     0.7192,    217,    4.407 ),
                    ]
 
+VGG512_cifar10_configs = [
+                   ('VGG16-E40p', 7.34,     96,    0,    605,    9.636),
+                   ('VGG16-E30p',  2.79,    48,    0,    318,    4.554),
+                   ('VGG16-E25p', 2.14,     33,    0 ,    226,    3.216),
+                   ('VGG16-E12p', 1.51,     20,     0,    169,    2.06),
+                   ('VGG16-E05p', 0.81,     10,     0,    112,    0.982),
+                   ]
+
+
+VGG512_GTSRB_configs = [
+                   ('VGG16-E25p', 2.14,     33,    0,    226,    3.216),
+                   ('VGG16-E05p',  0.81,    10,    0,    112,    0.982),
+                   ('VGG16-E01p', 0.11,     3,    0 ,    52,    0.343),
+                   ('VGG16-E00p', 0.06,     3,     0,    48,    0.233),
+                   ('VGG16-E005p', 0.04,     3,     0,    42,    0.18),
+                   ]
+
+
 resnet50_Models = [Model.init_from_list('resnet',config) for config in resnet50_imagenet50_configs]
 
 def tree(): return defaultdict(tree)
@@ -72,7 +90,7 @@ def main():
     running_apps = []
     for i in range(5):
         app = App('app'+str(i+1), np.random.uniform(resnet50_Models[-1].acc, resnet50_Models[0].acc),
-                    np.random.uniform(resnet50_Models[-1].Gflops, resnet50_Models[0].Gflops))
+                    np.random.uniform(resnet50_Models[-1].infer_time, resnet50_Models[0].infer_time))
         running_apps.append(app)
 
     inference_time_profile = tree()
@@ -83,7 +101,7 @@ def main():
         #random add apps
         if np.random.uniform()>0.999 and len(running_apps)< 6:
             app = App('app' + str(i + 1), np.random.uniform(resnet50_Models[-1].acc, resnet50_Models[0].acc),
-                      np.random.uniform(resnet50_Models[-1].Gflops, resnet50_Models[0].Gflops))
+                      np.random.uniform(resnet50_Models[-1].infer_time, resnet50_Models[0].infer_time))
             running_apps.append(app)
             optimize_now = True
 
