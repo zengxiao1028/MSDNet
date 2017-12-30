@@ -5,14 +5,18 @@ cpu_speed = 1.0
 class App(object):
 
 
-
-    def __init__(self, name = 'app', acc_min = 0, latency_max = 0, priority = 0):
+    def __init__(self, name, candidate_models,  alpha=0.05, beta=0.001):
         self.name = name
+        self.can_models = candidate_models
 
-        self.acc_min = acc_min
-        self.latency_max = latency_max
-        #print('creating {}, acc_min:{:.2f}, latency_min:{:.2f}'.format(name, acc_min, latency_max))
-        self.priority = priority
+        self.acc_min = candidate_models[-1].acc
+
+        self.latency_max = candidate_models[0].infer_time
+
+
+        self.alpha = alpha
+        self.beta = beta
+
         self.model = None
         self.load_model_time = 0
         self.infer_remain_time = 0
@@ -22,6 +26,9 @@ class App(object):
         self.last_time = 0
         self.ellapse_times = []
         self.sim_model = None
+
+        self.sim_cpu = 0
+        self.cpu = 0
 
 
     def load_model(self, model):
@@ -35,12 +42,13 @@ class App(object):
     def sim_load_model(self, model):
         self.sim_model = model
 
-    def compute_cost(self, running_apps, alpha=0.05, beta=0.001):
+
+    def compute_cost(self, running_apps):
         if self.sim_model is None:
             return 10000000
 
         acc_cost = self.acc_min -  self.sim_model.acc
-        latency_cost = max( (self.sim_model.infer_time - self.latency_max ), 0)
+        latency_cost = max( (self.sim_model.infer_time - self.latency_max )/self.sim_cpu , 0)
 
         if self.model is None or self.model.name != self.sim_model.name:
             load_cost = self.sim_model.load_time
@@ -48,12 +56,12 @@ class App(object):
             load_cost = 0
 
 
-        return acc_cost + alpha * latency_cost + beta * load_cost
+        return acc_cost + self.alpha * latency_cost + self.beta * load_cost
 
     def run_model(self, running_apps):
         #acc, flops(latency)
         #allocated_consumed_time = self.get_Gflops() * cpu_speed / np.sum([app.get_Gflops() for app in running_apps])
-        allocated_consumed_time = cpu_speed / len(running_apps)
+        allocated_consumed_time = self.cpu
         #allocated_consumed_time = cpu_speed
         new_remain_time = self.infer_remain_time - allocated_consumed_time
 
@@ -69,7 +77,7 @@ class App(object):
                 self.last_time = self.ellapse
 
                 self.infer_times = self.infer_times + 1
-                self.infer_accs.append(np.random.normal(self.model.acc, 0.05))
+                self.infer_accs.append(np.random.normal(self.model.acc,0.02))
                 self.infer_remain_time = self.model.infer_time + new_remain_time
             else:
                 self.infer_remain_time = new_remain_time
