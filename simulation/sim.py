@@ -60,10 +60,10 @@ vgg512_cifar10_Models = [Model.init_from_list('vgg512', config) for config in VG
 
 vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG512_GTSRB_configs]
 
-model_types = [(resnet50_imagenet50_Models,  (0.0001,0.001), 'imagenet50'  ),
-               (resnet50_imagenet100_Models, (0.0001,0.001), 'imagenet100'  ),
-               (vgg512_cifar10_Models,        (0.0001,0.001), 'cifar10'  ),
-               (vgg512_GTSRB_Models,          (0.00005,0.0005), 'GTSRB'  )
+model_types = [(resnet50_imagenet50_Models,  (1e-4,1e-3), 'imagenet50'  ),
+               (resnet50_imagenet100_Models, (1e-4,1e-3), 'imagenet100'  ),
+               (vgg512_cifar10_Models,        (1e-4,1e-3), 'cifar10'  ),
+               (vgg512_GTSRB_Models,          (5e-6,5e-5), 'GTSRB'  )
 ]
 
 results_dict={each[2]:[] for each in model_types}

@@ -1,0 +1,7 @@
+Delta acc: -0.05, on time rate 0.00, average_latency:363.36
+imagenet100
+Delta acc: -0.04, on time rate 0.00, average_latency:649.21
+cifar10
+Delta acc: -0.06, on time rate 0.07, average_latency:253.11
+GTSRB
+Delta acc: -0.03, on time rate 0.00, average_latency:286.37
