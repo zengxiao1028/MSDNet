@@ -93,6 +93,10 @@ def optimize(running_apps):
     with multiprocessing.Pool(processes=8) as pool:
         results = pool.starmap(compute_scheme_cost, schemes)
 
+    for result in results:
+        print([m.name for m in result[0]])
+        print([cpu for cpu in result[1]])
+        compute_sum_cost(running_apps,result[0],result[1],print_cost=True)
     ## brutal search for the optimal solution ##
 
     best_profile = sorted(results, key=lambda profile: profile[-1])[0]
@@ -143,7 +147,7 @@ def main():
             optimize(running_apps)
             optimize_now = False
 
-        if t%1000 == 0:
+        if t % 1000 == 0:
             print(t,len(running_apps), [app.model.name for app in running_apps])
 
         for idx, app in enumerate(running_apps):
@@ -165,8 +169,8 @@ def main():
                                                            np.sum(on_time_inferences.astype(int))/len(inferences),
                                                             np.mean(inferences)) )
 
-def compute_sum_cost(running_apps, model_scheme,cpu_scheme):
-    return  np.sum([app.compute_cost(model_scheme[idx],cpu_scheme[idx]) for idx,app in enumerate(running_apps)])
+def compute_sum_cost(running_apps, model_scheme,cpu_scheme,print_cost=False):
+    return  np.sum([app.compute_cost(model_scheme[idx],cpu_scheme[idx],print_cost) for idx,app in enumerate(running_apps)])
 
 def compute_sum_mem(models):
     return  np.sum([model.size for model in models])

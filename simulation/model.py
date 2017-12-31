@@ -43,16 +43,18 @@ class App(object):
         self.sim_model = model
 
 
-    def compute_cost(self, sim_model, sim_cpu):
+    def compute_cost(self, sim_model, sim_cpu,print_cost=False):
 
         acc_cost = self.acc_min -  sim_model.acc
-        latency_cost = max( (sim_model.infer_time - self.latency_max )/sim_cpu , 0)
+        latency_cost = max( (sim_model.infer_time/sim_cpu - self.latency_max ) , 0)
 
         if self.model is None or self.model.name != sim_model.name:
             load_cost = sim_model.load_time
         else:
             load_cost = 0
-
+        if print_cost:
+            print(acc_cost,self.alpha * latency_cost,self.beta * load_cost,
+                  acc_cost + self.alpha * latency_cost + self.beta * load_cost)
         return acc_cost + self.alpha * latency_cost + self.beta * load_cost
 
     # def compute_cost(self, running_apps):
