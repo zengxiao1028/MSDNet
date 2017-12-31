@@ -3,7 +3,7 @@ import copy
 from simulation.model import App, Model, cpu_speed
 import itertools
 from collections import defaultdict
-
+import multiprocessing
 
 S_max = 25
                     #name, GFlops, load time, acc, inference time, model size
@@ -68,38 +68,34 @@ model_types = [(resnet50_imagenet50_Models,  (0.05,0.001)  ),
 
 cpu_allocations = [ x/10. for x in range(1, 10)]
 
+def compute_scheme_cost(cpu_scheme,models_schemes,running_apps):
+    profiles = []
+    for model_scheme in models_schemes:
+        # try every possible cpu schemes
+            cost = compute_sum_cost(running_apps, model_scheme, cpu_scheme)
+            profiles.append((model_scheme, cpu_scheme, cost))
+    profiles = sorted(profiles, key=lambda profile: profile[-1])
+    return profiles[0]
+
 def optimize(running_apps):
 
     model_product = itertools.product(*[app.can_models for app in running_apps])
-    models_schemes = [each for each in model_product]
+    models_schemes = [each for each in model_product if compute_sum_mem(each) <= S_max ]
 
     cpu_product = itertools.product(cpu_allocations,repeat=len(running_apps)-1) #the last one is determined by preceding ones
     cpu_schemes = [cpu_scheme + (1-np.sum(cpu_scheme),) for cpu_scheme in cpu_product if np.sum(cpu_scheme) < 1.0 ]
 
+    schemes = []
+    for cpu_scheme in cpu_schemes:
+        schemes.append((cpu_scheme,models_schemes,running_apps ))
+
+
+    with multiprocessing.Pool(processes=8) as pool:
+        results = pool.starmap(compute_scheme_cost, schemes)
 
     ## brutal search for the optimal solution ##
-    profiles = []
-    for i in range(len(models_schemes)):
-        for idx, app in enumerate(running_apps):
-            app.sim_load_model(models_schemes[i][idx])
 
-        #try every possible cpu schemes
-        for j in range(len(cpu_schemes)):
-            for idx, app in enumerate(running_apps):
-                app.sim_cpu = cpu_schemes[j][idx]
-
-            cost = compute_sum_cost(running_apps)
-            profiles.append((models_schemes[i], cpu_schemes[j], cost))
-    profiles = sorted(profiles, key=lambda profile: profile[-1])
-
-
-    ### Smax requirement ####
-    best_profile = None
-    for profile in profiles:
-        sum_mem_cost = compute_sum_mem(profile[0])
-        if sum_mem_cost <= S_max:
-            best_profile = profile
-            break
+    best_profile = sorted(results, key=lambda profile: profile[-1])[0]
 
     if best_profile is None:
         print('No optimal solution found')
@@ -144,7 +140,6 @@ def main():
         if t % 1000==0 or optimize_now:
 
             optimize(running_apps)
-
             optimize_now = False
 
         if t%1000 == 0:
@@ -169,8 +164,8 @@ def main():
                                                            np.sum(on_time_inferences.astype(int))/len(inferences),
                                                             np.mean(inferences)) )
 
-def compute_sum_cost(running_apps):
-    return  np.sum([app.compute_cost(running_apps) for app in running_apps])
+def compute_sum_cost(running_apps, model_scheme,cpu_scheme):
+    return  np.sum([app.compute_cost(model_scheme[idx],cpu_scheme[idx]) for idx,app in enumerate(running_apps)])
 
 def compute_sum_mem(models):
     return  np.sum([model.size for model in models])

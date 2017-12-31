@@ -9,9 +9,9 @@ class App(object):
         self.name = name
         self.can_models = candidate_models
 
-        self.acc_min = candidate_models[-1].acc
+        self.acc_min = np.random.normal(candidate_models[-1].acc,candidate_models[-1].acc*0.01)
 
-        self.latency_max = candidate_models[0].infer_time
+        self.latency_max = np.random.normal(candidate_models[0].infer_time,15)
 
 
         self.alpha = alpha
@@ -43,17 +43,29 @@ class App(object):
         self.sim_model = model
 
 
-    def compute_cost(self, running_apps):
-        if self.sim_model is None:
-            return 10000000
+    def compute_cost(self, sim_model, sim_cpu):
 
-        acc_cost = self.acc_min -  self.sim_model.acc
-        latency_cost = max( (self.sim_model.infer_time - self.latency_max )/self.sim_cpu , 0)
+        acc_cost = self.acc_min -  sim_model.acc
+        latency_cost = max( (sim_model.infer_time - self.latency_max )/sim_cpu , 0)
 
-        if self.model is None or self.model.name != self.sim_model.name:
-            load_cost = self.sim_model.load_time
+        if self.model is None or self.model.name != sim_model.name:
+            load_cost = sim_model.load_time
         else:
             load_cost = 0
+
+        return acc_cost + self.alpha * latency_cost + self.beta * load_cost
+
+    # def compute_cost(self, running_apps):
+    #     if self.sim_model is None:
+    #         return 10000000
+    #
+    #     acc_cost = self.acc_min -  self.sim_model.acc
+    #     latency_cost = max( (self.sim_model.infer_time - self.latency_max )/self.sim_cpu , 0)
+    #
+    #     if self.model is None or self.model.name != self.sim_model.name:
+    #         load_cost = self.sim_model.load_time
+    #     else:
+    #         load_cost = 0
 
 
         return acc_cost + self.alpha * latency_cost + self.beta * load_cost
