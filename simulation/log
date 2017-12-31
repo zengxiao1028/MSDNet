@@ -1,11 +1,29 @@
 GTSRB
-Delta acc: 0.00, on time rate 0.00, average_latency:1013.26
+Delta acc: -0.01, on time rate 0.00, average_latency:898.24, infer_times:83
 cifar10
-Delta acc: -0.06, on time rate 0.05, average_latency:323.65
+Delta acc: -0.06, on time rate 0.12, average_latency:221.00, infer_times:187
 imagenet100
-Delta acc: -0.04, on time rate 0.00, average_latency:875.70
+Delta acc: -0.04, on time rate 0.00, average_latency:573.81, infer_times:107
 imagenet50
-Delta acc: -0.07, on time rate 0.00, average_latency:281.27
-cost 39.8548745322
+Delta acc: -0.07, on time rate 0.00, average_latency:318.32, infer_times:237
+cost 37.5577409582
 
+GTSRB
+Delta acc: -0.01, on time rate 0.00, average_latency:438.56, infer_times:144
+cifar10
+Delta acc: -0.06, on time rate 0.05, average_latency:323.65, infer_times:166
+imagenet100
+Delta acc: -0.04, on time rate 0.00, average_latency:875.70, infer_times:82
+imagenet50
+Delta acc: -0.07, on time rate 0.00, average_latency:281.27, infer_times:252
+cost 40.4565714929
 
+GTSRB
+Delta acc: -0.01, on time rate 0.00, average_latency:603.26, infer_times:116
+cifar10
+Delta acc: -0.06, on time rate 0.05, average_latency:301.62, infer_times:166
+imagenet100
+Delta acc: -0.04, on time rate 0.01, average_latency:619.70, infer_times:100
+imagenet50
+Delta acc: -0.07, on time rate 0.00, average_latency:344.42, infer_times:227
+cost 38.2141532828

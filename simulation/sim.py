@@ -64,13 +64,13 @@ vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG5
 model_types = [(resnet50_imagenet50_Models,  (1e-4,1e-3), 'imagenet50'  ),
                (resnet50_imagenet100_Models, (1e-4,1e-3), 'imagenet100'  ),
                (vgg512_cifar10_Models,        (1e-4,1e-3), 'cifar10'  ),
-               (vgg512_GTSRB_Models,          (5e-6,5e-5), 'GTSRB'  )
+               (vgg512_GTSRB_Models,          (1e-5,1e-4), 'GTSRB'  )
 ]
 
 results_dict={each[2]:[] for each in model_types}
 
-#cpu_allocations = [ x/100. for x in range(15, 35, 5)]
-cpu_allocations = [ x/100. for x in range(10, 100, 10)]
+cpu_allocations = [ x/100. for x in range(15, 35, 5)]
+#cpu_allocations = [ x/100. for x in range(10, 100, 10)]
 
 def compute_scheme_cost(cpu_scheme, models_schemes, running_apps):
     profiles = []
@@ -188,8 +188,8 @@ def stat_apps(finished_apps):
     print('Delta acc: {:.2f}, on time rate {:.2f}, average_latency:{:.2f}, infer_times:{:d}'.format(np.mean(delta_acc_list),
                                                                                   np.sum(on_time_inferences.astype(
                                                                                       int)) / len(inferences),
-                                                                                  np.mean(inferences)),
-                                                                                  np.sum(total_infer_times))
+                                                                                  np.mean(inferences),
+                                                                                  np.sum(total_infer_times)))
 
 
 def compute_sum_cost(running_apps, model_scheme, cpu_scheme, print_cost=False):
