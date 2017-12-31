@@ -94,8 +94,8 @@ def optimize(running_apps):
         results = pool.starmap(compute_scheme_cost, schemes)
 
     for result in results:
-        print([m.name for m in result[0]])
-        print([cpu for cpu in result[1]])
+        #print([m.name for m in result[0]])
+        #print([cpu for cpu in result[1]])
         compute_sum_cost(running_apps,result[0],result[1])
     ## brutal search for the optimal solution ##
 
