@@ -99,7 +99,7 @@ class App(object):
         self.ellapse = self.ellapse + 1
 
     def print_sum(self):
-        print("Run for {} times, mean acc {:.2f}/{:.2f}, average lag:{:.2f}/{:.2f}".format(
+        print(self.name + "Run for {} times, mean acc {:.2f}/{:.2f}, average lag:{:.2f}/{:.2f}".format(
             self.infer_times, np.mean(self.infer_accs),self.acc_min, np.mean(self.ellapse_times), self.latency_max/cpu_speed))
 
     def get_mem_cost(self):
