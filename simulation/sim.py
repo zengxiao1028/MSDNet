@@ -4,8 +4,8 @@ from simulation.model import App, Model, cpu_speed
 import itertools
 from collections import defaultdict
 import multiprocessing
-
-S_max = 25
+PRINT_COST=False
+S_max = 125
                     #name, GFlops, load time, acc, inference time, model size
 resnet50_imagenet50_configs = [
                    #('100', 5.32, 240, ),
@@ -60,10 +60,10 @@ vgg512_cifar10_Models = [Model.init_from_list('vgg512', config) for config in VG
 
 vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG512_GTSRB_configs]
 
-model_types = [(resnet50_imagenet50_Models,  (0,0)  ),
-               (resnet50_imagenet100_Models, (0,0)  ),
-               (vgg512_cifar10_Models,        (0,0)  ),
-               (vgg512_GTSRB_Models,          (0,0)  )
+model_types = [(resnet50_imagenet50_Models,  (0.0001,0.001)  ),
+               (resnet50_imagenet100_Models, (0.0001,0.001)  ),
+               (vgg512_cifar10_Models,        (0.0001,0.001)  ),
+               (vgg512_GTSRB_Models,          (0.00005,0.0005)  )
 ]
 
 cpu_allocations = [ x/10. for x in range(1, 10)]
@@ -96,7 +96,7 @@ def optimize(running_apps):
     for result in results:
         #print([m.name for m in result[0]])
         #print([cpu for cpu in result[1]])
-        compute_sum_cost(running_apps,result[0],result[1])
+        compute_sum_cost(running_apps,result[0],result[1],print_cost=PRINT_COST)
     ## brutal search for the optimal solution ##
 
     best_profile = sorted(results, key=lambda profile: profile[-1])[0]
@@ -142,7 +142,7 @@ def main():
             optimize_now = True
 
 
-        if t % 1000==0 or optimize_now:
+        if t ==0 or optimize_now:
 
             optimize(running_apps)
             optimize_now = False

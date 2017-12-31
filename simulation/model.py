@@ -53,8 +53,8 @@ class App(object):
         else:
             load_cost = 0
         if print_cost:
-            print(acc_cost,self.alpha * latency_cost,self.beta * load_cost,
-                  acc_cost + self.alpha * latency_cost + self.beta * load_cost)
+            print('acc:{:.3f}, lag:{:.3f}, load:{:.3f}'.format(acc_cost,self.alpha * latency_cost,self.beta * load_cost,
+                  acc_cost + self.alpha * latency_cost + self.beta * load_cost))
         return acc_cost + self.alpha * latency_cost + self.beta * load_cost
 
     # def compute_cost(self, running_apps):
