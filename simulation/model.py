@@ -71,7 +71,7 @@ class App(object):
 
     #     return acc_cost + self.alpha * latency_cost + self.beta * load_cost
 
-    def run_model(self, running_apps):
+    def run_model(self):
         #acc, flops(latency)
         #allocated_consumed_time = self.get_Gflops() * cpu_speed / np.sum([app.get_Gflops() for app in running_apps])
         allocated_consumed_time = self.cpu

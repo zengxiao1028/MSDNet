@@ -60,15 +60,15 @@ vgg512_cifar10_Models = [Model.init_from_list('vgg512', config) for config in VG
 
 vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG512_GTSRB_configs]
 
-model_types = [(resnet50_imagenet50_Models,  (0.05,0.001)  ),
-               (resnet50_imagenet100_Models, (0.05,0.001)  ),
-               (vgg512_cifar10_Models,        (0.05,0.001)  ),
+model_types = [(resnet50_imagenet50_Models,  (0.01,0.001)  ),
+               (resnet50_imagenet100_Models, (0.01,0.001)  ),
+               (vgg512_cifar10_Models,        (0.01,0.001)  ),
                (vgg512_GTSRB_Models,          (0.01,0.001)  )
 ]
 
 cpu_allocations = [ x/10. for x in range(1, 10)]
 
-def compute_scheme_cost(cpu_scheme,models_schemes,running_apps):
+def compute_scheme_cost(cpu_scheme, models_schemes, running_apps):
     profiles = []
     for model_scheme in models_schemes:
         # try every possible cpu schemes
