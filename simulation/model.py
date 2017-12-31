@@ -9,7 +9,7 @@ class App(object):
         self.name = name
         self.can_models = candidate_models
 
-        self.acc_min = np.random.normal(candidate_models[-1].acc,candidate_models[-1].acc*0.01)
+        self.acc_min = np.random.normal(candidate_models[-2].acc,candidate_models[-1].acc*0.01)
 
         self.latency_max = np.random.normal(candidate_models[0].infer_time,15)
 
