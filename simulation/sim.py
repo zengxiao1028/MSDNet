@@ -90,7 +90,7 @@ def optimize(running_apps):
         schemes.append((cpu_scheme,models_schemes,running_apps ))
 
 
-    with multiprocessing.Pool(processes=8) as pool:
+    with multiprocessing.Pool(processes=12) as pool:
         results = pool.starmap(compute_scheme_cost, schemes)
 
     for result in results:
@@ -152,7 +152,7 @@ def main():
 
         for idx, app in enumerate(running_apps):
 
-            app.run_model(running_apps)
+            app.run_model()
 
     delta_acc_list = []
     delta_latency_list = []
