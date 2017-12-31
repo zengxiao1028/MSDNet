@@ -6,8 +6,7 @@ from collections import defaultdict
 import multiprocessing
 PRINT_COST=False
 S_max = 125
-sum_cost = 0
-
+costs = []
                     #name, GFlops, load time, acc, inference time, model size
 resnet50_imagenet50_configs = [
                    #('100', 5.32, 240, ),
@@ -113,8 +112,8 @@ def optimize(running_apps):
     else:
         ### load (switch) best profile ###
         cost =  compute_sum_cost(running_apps, best_profile[0], best_profile[1])
-        sum_cost = sum_cost + cost
-        print('miniumum cost:',cost)
+        costs.append(cost)
+        print('minimum cost:',cost)
         for idx, app in enumerate(running_apps):
             app.load_model(best_profile[0][idx])
             app.cpu = best_profile[1][idx]
@@ -166,6 +165,8 @@ def main():
 
     for k in sorted(results_dict.keys()):
         stat_apps(results_dict[k])
+
+    print('cost', np.sum(costs))
 
 
 def stat_apps(finished_apps):
