@@ -60,11 +60,13 @@ vgg512_cifar10_Models = [Model.init_from_list('vgg512', config) for config in VG
 
 vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG512_GTSRB_configs]
 
-model_types = [(resnet50_imagenet50_Models,  (0.0001,0.001)  ),
-               (resnet50_imagenet100_Models, (0.0001,0.001)  ),
-               (vgg512_cifar10_Models,        (0.0001,0.001)  ),
-               (vgg512_GTSRB_Models,          (0.00005,0.0005)  )
+model_types = [(resnet50_imagenet50_Models,  (0.0001,0.001), 'imagenet50'  ),
+               (resnet50_imagenet100_Models, (0.0001,0.001), 'imagenet100'  ),
+               (vgg512_cifar10_Models,        (0.0001,0.001), 'cifar10'  ),
+               (vgg512_GTSRB_Models,          (0.00005,0.0005), 'GTSRB'  )
 ]
+
+results_dict={each[2]:[] for each in model_types}
 
 cpu_allocations = [ x/10. for x in range(1, 10)]
 
@@ -115,7 +117,7 @@ def main():
     running_apps = []
     for i in range(4):
         app_model_type = model_types[i]
-        app = App('app'+str(i+1), app_model_type[0], *app_model_type[1])
+        app = App(app_model_type[2], app_model_type[0], *app_model_type[1])
         running_apps.append(app)
 
 
@@ -126,7 +128,7 @@ def main():
         #random add apps
         if np.random.uniform()>0.999 and len(running_apps) < 6:
             app_model_type =  model_types[t%len(model_types)]
-            app = App('app' + str(i + 1), app_model_type[0], *app_model_type[1])
+            app = App(app_model_type[2], app_model_type[0], *app_model_type[1])
             running_apps.append(app)
             optimize_now = True
 
@@ -138,7 +140,7 @@ def main():
             app = running_apps.pop(remove_index)
 
             app.print_sum()
-            finished_apps.append(app)
+            results_dict[app.name].append(app)
             optimize_now = True
 
 
@@ -154,20 +156,30 @@ def main():
 
             app.run_model()
 
+
+    for k in results_dict.keys():
+        stat_apps(results_dict[k])
+
+
+def stat_apps(finished_apps):
     delta_acc_list = []
     delta_latency_list = []
     for app in finished_apps:
         if app.infer_times == 0:
-            print('App exit before inference finished.')
+            #print('App exit before inference finished.')
+            pass
         else:
             delta_acc_list.append(np.mean(app.infer_accs) - app.acc_min),
-            delta_latency_list.append(np.array(app.ellapse_times) - app.latency_max/cpu_speed)
+            delta_latency_list.append(np.array(app.ellapse_times) - app.latency_max / cpu_speed)
 
     inferences = np.hstack(delta_latency_list).flatten()
-    on_time_inferences = inferences<= 0
+    on_time_inferences = inferences <= 0
+    print(finished_apps[0].name)
     print('Delta acc: {:.2f}, on time rate {:.2f}, average_latency:{:.2f}'.format(np.mean(delta_acc_list),
-                                                           np.sum(on_time_inferences.astype(int))/len(inferences),
-                                                            np.mean(inferences)) )
+                                                                                  np.sum(on_time_inferences.astype(
+                                                                                      int)) / len(inferences),
+                                                                                  np.mean(inferences)))
+
 
 def compute_sum_cost(running_apps, model_scheme,cpu_scheme,print_cost=False):
     return  np.sum([app.compute_cost(model_scheme[idx],cpu_scheme[idx],print_cost) for idx,app in enumerate(running_apps)])
