@@ -96,7 +96,7 @@ def optimize(running_apps):
     for result in results:
         print([m.name for m in result[0]])
         print([cpu for cpu in result[1]])
-        compute_sum_cost(running_apps,result[0],result[1],print_cost=True)
+        compute_sum_cost(running_apps,result[0],result[1])
     ## brutal search for the optimal solution ##
 
     best_profile = sorted(results, key=lambda profile: profile[-1])[0]
