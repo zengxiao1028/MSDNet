@@ -106,6 +106,7 @@ def optimize(running_apps):
             app.cpu = best_profile[1][idx]
 
 def main():
+    np.random.seed(1024)
     optimize_now = False
     running_apps = []
     for i in range(4):
@@ -115,7 +116,7 @@ def main():
 
 
     finished_apps = []
-    np.random.seed(1024)
+
     for t in range(int(1e5)):
 
         #random add apps

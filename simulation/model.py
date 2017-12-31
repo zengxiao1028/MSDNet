@@ -67,8 +67,7 @@ class App(object):
     #     else:
     #         load_cost = 0
 
-
-        return acc_cost + self.alpha * latency_cost + self.beta * load_cost
+    #     return acc_cost + self.alpha * latency_cost + self.beta * load_cost
 
     def run_model(self, running_apps):
         #acc, flops(latency)
