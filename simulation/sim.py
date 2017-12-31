@@ -60,10 +60,10 @@ vgg512_cifar10_Models = [Model.init_from_list('vgg512', config) for config in VG
 
 vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG512_GTSRB_configs]
 
-model_types = [(resnet50_imagenet50_Models,  (0.01,0.001)  ),
-               (resnet50_imagenet100_Models, (0.01,0.001)  ),
-               (vgg512_cifar10_Models,        (0.01,0.001)  ),
-               (vgg512_GTSRB_Models,          (0.01,0.001)  )
+model_types = [(resnet50_imagenet50_Models,  (0,0)  ),
+               (resnet50_imagenet100_Models, (0,0)  ),
+               (vgg512_cifar10_Models,        (0,0)  ),
+               (vgg512_GTSRB_Models,          (0,0)  )
 ]
 
 cpu_allocations = [ x/10. for x in range(1, 10)]
