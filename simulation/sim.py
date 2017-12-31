@@ -6,6 +6,8 @@ from collections import defaultdict
 import multiprocessing
 PRINT_COST=False
 S_max = 125
+sum_cost = 0
+
                     #name, GFlops, load time, acc, inference time, model size
 resnet50_imagenet50_configs = [
                    #('100', 5.32, 240, ),
@@ -68,7 +70,8 @@ model_types = [(resnet50_imagenet50_Models,  (1e-4,1e-3), 'imagenet50'  ),
 
 results_dict={each[2]:[] for each in model_types}
 
-cpu_allocations = [ x/10. for x in range(1, 10)]
+#cpu_allocations = [ x/100. for x in range(15, 35, 5)]
+cpu_allocations = [ x/100. for x in range(10, 100, 10)]
 
 def compute_scheme_cost(cpu_scheme, models_schemes, running_apps):
     profiles = []
@@ -85,8 +88,10 @@ def optimize(running_apps):
     models_schemes = [each for each in model_product if compute_sum_mem(each) <= S_max ]
 
     cpu_product = itertools.product(cpu_allocations,repeat=len(running_apps)-1) #the last one is determined by preceding ones
+
     cpu_schemes = [cpu_scheme + (1-np.sum(cpu_scheme),) for cpu_scheme in cpu_product if np.sum(cpu_scheme) < 1.0 ]
-    #cpu_schemes = ([1./len(running_apps) for x in running_apps],)
+    cpu_schemes = ([1./len(running_apps) for x in running_apps],)
+
     schemes = []
     for cpu_scheme in cpu_schemes:
         schemes.append((cpu_scheme,models_schemes,running_apps ))
@@ -107,11 +112,15 @@ def optimize(running_apps):
         print('No optimal solution found')
     else:
         ### load (switch) best profile ###
+        cost =  compute_sum_cost(running_apps, best_profile[0], best_profile[1])
+        sum_cost = sum_cost + cost
+        print('miniumum cost:',cost)
         for idx, app in enumerate(running_apps):
             app.load_model(best_profile[0][idx])
             app.cpu = best_profile[1][idx]
 
 def main():
+
     np.random.seed(1023)
     optimize_now = False
     running_apps = []
@@ -179,7 +188,7 @@ def stat_apps(finished_apps):
                                                                                   np.mean(inferences)))
 
 
-def compute_sum_cost(running_apps, model_scheme,cpu_scheme,print_cost=False):
+def compute_sum_cost(running_apps, model_scheme, cpu_scheme, print_cost=False):
     return  np.sum([app.compute_cost(model_scheme[idx],cpu_scheme[idx],print_cost) for idx,app in enumerate(running_apps)])
 
 def compute_sum_mem(models):

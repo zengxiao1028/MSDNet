@@ -35,8 +35,8 @@ class App(object):
 
           if self.model is None or self.model.name != model.name:
                 self.model = model
-                self.load_model_time = np.random.normal(model.load_time, 10)
-                self.infer_remain_time = np.random.normal(self.model.infer_time, 10)
+                self.load_model_time = model.load_time
+                self.infer_remain_time = self.model.infer_time
 
     ## load sim model for computing cost
     def sim_load_model(self, model):
@@ -90,7 +90,7 @@ class App(object):
                 self.last_time = self.ellapse
 
                 self.infer_times = self.infer_times + 1
-                self.infer_accs.append(np.random.normal(self.model.acc,0.02))
+                self.infer_accs.append(self.model.acc)
                 self.infer_remain_time = self.model.infer_time + new_remain_time
             else:
                 self.infer_remain_time = new_remain_time
