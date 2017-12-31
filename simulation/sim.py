@@ -86,7 +86,7 @@ def optimize(running_apps):
 
     cpu_product = itertools.product(cpu_allocations,repeat=len(running_apps)-1) #the last one is determined by preceding ones
     cpu_schemes = [cpu_scheme + (1-np.sum(cpu_scheme),) for cpu_scheme in cpu_product if np.sum(cpu_scheme) < 1.0 ]
-    cpu_schemes = [1./len(running_apps) for x in running_apps]
+    #cpu_schemes = ([1./len(running_apps) for x in running_apps],)
     schemes = []
     for cpu_scheme in cpu_schemes:
         schemes.append((cpu_scheme,models_schemes,running_apps ))
