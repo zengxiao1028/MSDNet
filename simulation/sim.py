@@ -155,7 +155,7 @@ def main():
             app.run_model()
 
 
-    for k in results_dict.keys():
+    for k in sorted(results_dict.keys()):
         stat_apps(results_dict[k])
 
 
