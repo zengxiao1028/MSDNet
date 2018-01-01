@@ -70,7 +70,7 @@ model_types = [(resnet50_imagenet50_Models,  (1e-3,1e-3), 'imagenet50'  ),
 results_dict={each[2]:[] for each in model_types}
 
 #cpu_allocations = [ x/100. for x in range(15, 35, 5)]
-cpu_allocations = [ x/100. for x in range(10, 100, 5)]
+cpu_allocations = [ x/100. for x in range(10, 100, 10)]
 
 def compute_scheme_cost(cpu_scheme, models_schemes, running_apps):
     profiles = []
