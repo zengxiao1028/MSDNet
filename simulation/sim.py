@@ -5,7 +5,7 @@ import itertools
 from collections import defaultdict
 import multiprocessing
 PRINT_COST=False
-S_max = 125
+S_max = 100
 costs = []
                     #name, GFlops, load time, acc, inference time, model size
 resnet50_imagenet50_configs = [
@@ -61,10 +61,10 @@ vgg512_cifar10_Models = [Model.init_from_list('vgg512', config) for config in VG
 
 vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG512_GTSRB_configs]
 
-model_types = [(resnet50_imagenet50_Models,  (1e-4,1e-3), 'imagenet50'  ),
-               (resnet50_imagenet100_Models, (1e-4,1e-3), 'imagenet100'  ),
-               (vgg512_cifar10_Models,        (1e-4,1e-3), 'cifar10'  ),
-               (vgg512_GTSRB_Models,          (1e-5,1e-4), 'GTSRB'  )
+model_types = [(resnet50_imagenet50_Models,  (1e-3,1e-3), 'imagenet50'  ),
+               (resnet50_imagenet100_Models, (1e-3,1e-3), 'imagenet100'  ),
+               (vgg512_cifar10_Models,        (1e-3,1e-3), 'cifar10'  ),
+               (vgg512_GTSRB_Models,          (1e-4,1e-4), 'GTSRB'  )
 ]
 
 results_dict={each[2]:[] for each in model_types}
@@ -150,7 +150,7 @@ def main():
             optimize_now = True
 
 
-        if t ==0 or optimize_now:
+        if t == 0 or optimize_now:
 
             optimize(running_apps)
             optimize_now = False
