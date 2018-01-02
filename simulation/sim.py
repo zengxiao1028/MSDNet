@@ -132,14 +132,14 @@ def main():
     for t in range(int(1e5)):
 
         #random add apps
-        if np.random.uniform()>0.95 and len(running_apps) < 6:
+        if np.random.uniform()>0.99 and len(running_apps) < 6:
             app_model_type =  model_types[t%len(model_types)]
             app = App(app_model_type[2], app_model_type[0], *app_model_type[1])
             running_apps.append(app)
             optimize_now = True
 
         # random delete apps
-        if np.random.uniform()>0.95 and len(running_apps) > 2:
+        if np.random.uniform()>0.999 and len(running_apps) > 2:
             remove_index = 0
 
             #if running_apps[remove_index].infer_times > 5:
