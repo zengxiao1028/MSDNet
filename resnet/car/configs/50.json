@@ -21,13 +21,13 @@
                                 [128,128,1024]],
         "name":                  "50",
         "weights":                "",
-        "classes":                8,
+        "classes":                75,
         "include_top":            true
     },
 
     "train": {
         "batch_size":         64,
-        "epochs":             10
+        "epochs":             40
     }
 
 

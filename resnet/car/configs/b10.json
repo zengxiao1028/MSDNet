@@ -21,13 +21,13 @@
                                 [8,8,256]],
         "name":                  "b10",
         "weights":                "",
-        "classes":                8,
+        "classes":                75,
         "include_top":            true
     },
 
     "train": {
         "batch_size":         64,
-        "epochs":             20
+        "epochs":             60
     }
 
 
