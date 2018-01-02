@@ -4,7 +4,7 @@ cpu_speed = 1.0
 
 class App(object):
 
-    freeze_model = False
+    freeze_model = True
 
     def __init__(self, name, candidate_models,  alpha=0.05, beta=0.001):
         self.name = name
@@ -41,8 +41,9 @@ class App(object):
                 self.load_times += 1
                 self.infer_remain_time = self.model.infer_time
 
+                old_load_time = 0 if self.model is None else self.model.load_time
                 if self.freeze_model:
-                    self.load_model_time = np.abs(self.model.load_time - model.load_time)
+                    self.load_model_time = np.abs(old_load_time - model.load_time)
                 else:
                     self.load_model_time = model.load_time
 
@@ -62,9 +63,11 @@ class App(object):
         if self.model is not None and self.model.name == sim_model.name:
             load_cost = 0
         else:
+
+            old_load_time = 0 if self.model is None else self.model.load_time
             #load model cost
             if self.freeze_model:
-                load_cost = np.abs(sim_model.load_time-self.model.load_time)
+                load_cost = np.abs(sim_model.load_time - old_load_time)
             else:
                 load_cost = sim_model.load_time
 
