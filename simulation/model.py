@@ -13,7 +13,7 @@ class App(object):
 
         self.latency_max = np.random.normal(candidate_models[0].infer_time, 10)
 
-
+        self.load_times = 0
         self.alpha = alpha
         self.beta = beta
 
@@ -36,6 +36,7 @@ class App(object):
           if self.model is None or self.model.name != model.name:
                 self.model = model
                 self.load_model_time = model.load_time
+                self.load_times += 1
                 self.infer_remain_time = self.model.infer_time
 
     ## load sim model for computing cost

@@ -173,6 +173,7 @@ def stat_apps(finished_apps):
     delta_acc_list = []
     delta_latency_list = []
     total_infer_times = 0
+    total_load_times = 0
     for app in finished_apps:
         if app.infer_times == 0:
             #print('App exit before inference finished.')
@@ -181,15 +182,16 @@ def stat_apps(finished_apps):
             delta_acc_list.append(np.mean(app.infer_accs) - app.acc_min),
             delta_latency_list.append(np.array(app.ellapse_times) - app.latency_max / cpu_speed)
             total_infer_times += app.infer_times
-
+            total_load_times += app.load_times
     inferences = np.hstack(delta_latency_list).flatten()
     on_time_inferences = inferences <= 0
     print(finished_apps[0].name)
-    print('Delta acc: {:.2f}, on time rate {:.2f}, average_latency:{:.2f}, infer_times:{:d}'.format(np.mean(delta_acc_list),
+    print('Delta acc: {:.2f}, on time rate {:.2f}, average_latency:{:.2f}, infer_times:{:d}, load_times:{:d}'.format(np.mean(delta_acc_list),
                                                                                   np.sum(on_time_inferences.astype(
                                                                                       int)) / len(inferences),
                                                                                   np.mean(inferences),
-                                                                                  np.sum(total_infer_times)))
+                                                                                  np.sum(total_infer_times),
+                                                                                  np.sum(total_load_times) ))
 
 
 def compute_sum_cost(running_apps, model_scheme, cpu_scheme, print_cost=False):
