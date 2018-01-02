@@ -69,8 +69,8 @@ model_types = [(resnet50_imagenet50_Models,  (1e-3,1e-3), 'imagenet50'  ),
 
 results_dict={each[2]:[] for each in model_types}
 
-cpu_allocations = [ x/100. for x in range(15, 35, 5)]
-#cpu_allocations = [ x/100. for x in range(10, 100, 5)]
+#cpu_allocations = [ x/100. for x in range(15, 35, 5)]
+cpu_allocations = [ x/100. for x in range(10, 100, 10)]
 
 def compute_scheme_cost(cpu_scheme, models_schemes, running_apps):
     profiles = []
@@ -132,14 +132,14 @@ def main():
     for t in range(int(1e5)):
 
         #random add apps
-        if np.random.uniform()>0.999 and len(running_apps) < 6:
+        if np.random.uniform()>0.95 and len(running_apps) < 6:
             app_model_type =  model_types[t%len(model_types)]
             app = App(app_model_type[2], app_model_type[0], *app_model_type[1])
             running_apps.append(app)
             optimize_now = True
 
         # random delete apps
-        if np.random.uniform()>0.9995 and len(running_apps) > 2:
+        if np.random.uniform()>0.95 and len(running_apps) > 2:
             remove_index = 0
 
             #if running_apps[remove_index].infer_times > 5:
