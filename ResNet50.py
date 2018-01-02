@@ -1175,11 +1175,11 @@ def main_age():
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
     for i in range(0,len(models)-1):
-        print('Training resnet%s for age' % models[i+1])
+        print('Training resnet%s for car' % models[i+1])
 
-        trimmer = Trimmer('./resnet/age/results/%s_1' % models[i],'./resnet/age/configs/%s.json' % models[i+1])
-        trimmer.trim(trim_folder = './resnet/age/trimmed_models/')
-        resnet = ResNet50.init_from_folder('./resnet/age/trimmed_models/%s' % models[i+1],best_only=False)
+        trimmer = Trimmer('./resnet/car/results/%s_1' % models[i],'./resnet/car/configs/%s.json' % models[i+1])
+        trimmer.trim(trim_folder = './resnet/car/trimmed_models/')
+        resnet = ResNet50.init_from_folder('./resnet/car/trimmed_models/%s' % models[i+1],best_only=False)
         resnet.eval_age()
         resnet.train_age()
 
