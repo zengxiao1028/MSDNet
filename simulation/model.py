@@ -43,7 +43,9 @@ class App(object):
 
                 old_load_time = 0 if self.model is None else self.model.load_time
                 if self.freeze_model:
-                    self.load_model_time = np.abs(old_load_time - model.load_time)
+                    # go bigger:
+                    if model.size > self.model.size:
+                        self.load_model_time = np.abs(old_load_time - model.load_time)
                 else:
                     self.load_model_time = model.load_time
 
