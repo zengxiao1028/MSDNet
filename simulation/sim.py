@@ -2,6 +2,7 @@ import numpy as np
 import copy
 from simulation.model import App, Model, cpu_speed
 import itertools
+import time
 from collections import defaultdict
 import multiprocessing
 PRINT_COST=False
@@ -118,7 +119,7 @@ def optimize(running_apps):
             app.cpu = best_profile[1][idx]
 
 def main():
-
+    begin_time = time.time()
     np.random.seed(1023)
     optimize_now = False
     running_apps = []
@@ -166,6 +167,7 @@ def main():
         stat_apps(results_dict[k])
 
     print('cost', np.sum(costs))
+    print('Used time:{:d}'.format( time.time() - begin_time))
 
 
 def stat_apps(finished_apps):
