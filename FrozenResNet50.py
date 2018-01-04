@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 from keras.layers import BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense,Conv2D
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -755,6 +755,34 @@ def recover_age(frozen_trainable=False):
             training_save_dir='./resnet/age/%s/' % save_dir,epochs=40)
 
 
+def recover_car(frozen_trainable=False):
+
+    model_types = [
+        ('0', '10'),
+        ('10', '20'),
+        ('20', '30'),
+        ('30', '40'),
+        ('40', '50'),
+        ('50', '60'),
+    ]
+
+    for idx, types in enumerate(model_types):
+        K.clear_session()
+        frozen_model_type, recover_model_type = types
+        resnet = FrozenResNet50(config_path = './resnet/car/configs/%s.json' % recover_model_type,
+                                frozen_model_config_path = './resnet/car/configs/%s.json' % frozen_model_type,
+                                frozen_trainbale = frozen_trainable)
+
+        save_dir = 'recover_results' if frozen_trainable is False else 'unfreeze_recover_results'
+        if frozen_model_type == '0':
+            resnet.load_frozen_aug_weights('./resnet/car/results/%s_1' % frozen_model_type)
+        else:
+            resnet.load_frozen_aug_weights('./resnet/car/recover_results/%s_1' %  frozen_model_type )
+
+        resnet.train_car(
+            training_save_dir='./resnet/car/%s/' % save_dir,epochs=100)
+
+
 def train_cifar10_early_exit():
 
     model_types = [
@@ -794,5 +822,5 @@ if __name__ == '__main__':
 
     #recover_imagenet(frozen_trainable=False)
     #recover_imagenet(frozen_trainable=True)
-    recover_age(True)
+    recover_car(True)
     #recover_GTSRB(frozen_trainable=False)

@@ -5,7 +5,7 @@ import cv2
 
 def main():
 
-    set ='test'
+    set ='train'
 
     src_folder = '/storage/car/data/image'
     dst_folder = '/storage/car/%s' % set
@@ -19,7 +19,7 @@ def main():
                 items = line.split('/')
                 image_path = os.path.join(src_folder, line)
 
-                label = items[0]
+                label = items[1]
                 save_folder = os.path.join(dst_folder, label)
                 os.makedirs(save_folder, exist_ok=True)
 

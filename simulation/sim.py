@@ -81,15 +81,17 @@ def compute_scheme_cost(cpu_scheme, models_schemes, running_apps):
     profiles = sorted(profiles, key=lambda profile: profile[-1])
     return profiles[0]
 
-def optimize(running_apps):
+def optimize(running_apps, fair_allocation=False):
 
     model_product = itertools.product(*[app.can_models for app in running_apps])
     models_schemes = [each for each in model_product if compute_sum_mem(each) <= S_max ]
 
     cpu_product = itertools.product(cpu_allocations,repeat=len(running_apps)-1) #the last one is determined by preceding ones
 
-    cpu_schemes = [cpu_scheme + (1-np.sum(cpu_scheme),) for cpu_scheme in cpu_product if np.sum(cpu_scheme) < 1.0 ]
-    #cpu_schemes = ([1./len(running_apps) for x in running_apps],)
+    if fair_allocation:
+        cpu_schemes = ([1. / len(running_apps) for x in running_apps],)
+    else:
+        cpu_schemes = [cpu_scheme + (1-np.sum(cpu_scheme),) for cpu_scheme in cpu_product if np.sum(cpu_scheme) < 1.0 ]
 
     schemes = []
     for cpu_scheme in cpu_schemes:
