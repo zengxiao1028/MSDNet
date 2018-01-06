@@ -230,8 +230,10 @@ def stat_apps(finished_apps):
             sum_nb_infers += app.nb_infers
             sum_nb_switches += app.nb_switches
 
-    one_by_one_fps = np.mean(1000./np.array(latency_list))
-    mean_fps = sum_nb_infers / np.sum(latency_list) * 1000.
+    latencies = np.hstack(latency_list).flatten()
+    one_by_one_fps = np.mean(1000./ np.array(latencies))
+    mean_fps = sum_nb_infers / np.sum(latencies) * 1000.
+
     delta_accuracies = np.hstack(delta_acc_list).flatten()
     delta_latencies = np.hstack(delta_latency_list).flatten()
     assert len(delta_latencies) == sum_nb_infers
