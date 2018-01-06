@@ -758,12 +758,9 @@ def recover_age(frozen_trainable=False):
 def recover_car(frozen_trainable=False):
 
     model_types = [
-        ('0', '10'),
-        ('10', '20'),
-        ('20', '30'),
-        ('30', '40'),
-        ('40', '50'),
-        ('50', '60'),
+        ('b20', '20'),
+        ('20', '50'),
+        ('50', '80'),
     ]
 
     for idx, types in enumerate(model_types):
@@ -774,7 +771,7 @@ def recover_car(frozen_trainable=False):
                                 frozen_trainbale = frozen_trainable)
 
         save_dir = 'recover_results' if frozen_trainable is False else 'unfreeze_recover_results'
-        if frozen_model_type == '0':
+        if frozen_model_type == 'b20':
             resnet.load_frozen_aug_weights('./resnet/car/results/%s_1' % frozen_model_type)
         else:
             resnet.load_frozen_aug_weights('./resnet/car/recover_results/%s_1' %  frozen_model_type )

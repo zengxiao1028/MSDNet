@@ -1279,7 +1279,7 @@ def main_car():
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
-    for i in range(5,len(models)-1):
+    for i in range(7,len(models)-1):
         print('Training resnet%s for car' % models[i+1])
 
         trimmer = Trimmer('./resnet/car/results/%s_1' % models[i],'./resnet/car/configs/%s.json' % models[i+1])

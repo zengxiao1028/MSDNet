@@ -5,7 +5,14 @@ import itertools
 import time
 from collections import defaultdict
 import multiprocessing
-PRINT_COST=False
+PRINT_COST=True
+REVERSE_SEARCH=False
+
+fair_allocation = False
+minTotalCost = False
+
+
+
 S_max = 100
 costs = []
                     #name, GFlops, load time, acc, inference time, model size
@@ -24,6 +31,24 @@ resnet50_imagenet50_configs = [
                    #('b0', 0.36, 3, 0),
                    ('imagenet50 b10', 0.31, 2, 0.6363, 65, 0.149),
                    ('imagenet50 b20', 0.27, 2, 0.625, 55, 0.117)
+                   ]
+
+#name GFlops, load time, acc, inference time, model size
+resnet50_cifar10_configs = [
+                   #('100', 5.32, 240, ),
+                   #('90', 4, 144),
+                   ('cifar10 80', 3.07, 103, 0.906, 301, 10.606),
+                   #('70', 2.33, 65),
+                   #('60', 2.03, 42),
+                   ('cifar10 50', 1.79, 32, 0.898, 193, 3.12),
+                   #('40', 1.05, 18),
+                   #('30', 0.81, 12, 0),
+                   ('cifar10 20', 0.74, 6, 0.8783, 97, 0.53),
+                   #('10', 0.66, 4, 0),
+                   #('0', 0.6, 4, 0),
+                   #('b0', 0.36, 3, 0),
+                   ('cifar10 b10', 0.31, 2, 0.8204, 65, 0.149),
+                   ('cifar10 b20', 0.27, 2, 0.808, 55, 0.117)
                    ]
 
             #name, GFlops, load_time, acc, inference_time, model_size
@@ -56,16 +81,19 @@ VGG512_GTSRB_configs = [
 
 resnet50_imagenet50_Models = [Model.init_from_list('resnet', config) for config in resnet50_imagenet50_configs]
 
+resnet50_cifar10_Models = [Model.init_from_list('resnet', config) for config in resnet50_cifar10_configs]
+
 resnet50_imagenet100_Models = [Model.init_from_list('resnet', config) for config in resnet50_imagenet100_configs]
 
 vgg512_cifar10_Models = [Model.init_from_list('vgg512', config) for config in VGG512_cifar10_configs]
 
 vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG512_GTSRB_configs]
 
-model_types = [(resnet50_imagenet50_Models,  (1e-3,1e-3), 'imagenet50'  ),
-               (resnet50_imagenet100_Models, (1e-3,1e-3), 'imagenet100'  ),
-               (vgg512_cifar10_Models,        (1e-3,1e-3), 'cifar10'  ),
-               (vgg512_GTSRB_Models,          (1e-4,1e-4), 'GTSRB'  )
+model_types = [(resnet50_imagenet50_Models,  (1e-3,1e-3), 'imagenet50 resnet50'  ),
+               (resnet50_cifar10_Models, (1e-3,1e-3), 'cifar10 resnet50'  ),
+               (resnet50_imagenet100_Models, (1e-3,1e-3), 'imagenet100 resnet50'  ),
+               (vgg512_cifar10_Models,        (1e-3,1e-3), 'cifar10 vgg512'  ),
+               (vgg512_GTSRB_Models,          (1e-4,1e-4), 'GTSRB vgg512'  )
 ]
 
 results_dict={each[2]:[] for each in model_types}
@@ -76,17 +104,24 @@ def compute_scheme_cost(cpu_scheme, models_schemes, running_apps):
     profiles = []
     for model_scheme in models_schemes:
         # try every possible cpu schemes
-            cost = compute_sum_cost(running_apps, model_scheme, cpu_scheme)
+            if minTotalCost:
+                cost = compute_sum_cost(running_apps, model_scheme, cpu_scheme)
+            else:
+                cost = compute_max_cost(running_apps, model_scheme, cpu_scheme)
             profiles.append((model_scheme, cpu_scheme, cost))
-    profiles = sorted(profiles, key=lambda profile: profile[-1])
+
+
+    profiles = sorted(profiles, key=lambda profile: profile[-1],reverse=REVERSE_SEARCH)
+
+
     return profiles[0]
 
-def optimize(running_apps, fair_allocation=False):
+def optimize(running_apps):
 
     model_product = itertools.product(*[app.can_models for app in running_apps])
     models_schemes = [each for each in model_product if compute_sum_mem(each) <= S_max ]
 
-    cpu_product = itertools.product(cpu_allocations,repeat=len(running_apps)-1) #the last one is determined by preceding ones
+    cpu_product = itertools.product(cpu_allocations, repeat = len(running_apps)-1) #the last one is determined by preceding ones
 
     if fair_allocation:
         cpu_schemes = ([1. / len(running_apps) for x in running_apps],)
@@ -95,19 +130,21 @@ def optimize(running_apps, fair_allocation=False):
 
     schemes = []
     for cpu_scheme in cpu_schemes:
-        schemes.append((cpu_scheme,models_schemes,running_apps ))
-
+        schemes.append((cpu_scheme,models_schemes,running_apps))
 
     with multiprocessing.Pool(processes=12) as pool:
         results = pool.starmap(compute_scheme_cost, schemes)
 
     for result in results:
-        #print([m.name for m in result[0]])
-        #print([cpu for cpu in result[1]])
-        compute_sum_cost(running_apps,result[0],result[1],print_cost=PRINT_COST)
-    ## brutal search for the optimal solution ##
+        compute_sum_cost(running_apps,result[0],result[1],print_cost=False)
 
-    best_profile = sorted(results, key=lambda profile: profile[-1])[0]
+
+    ## brutal search for the optimal solution ##
+    sorted_results = sorted(results, key=lambda profile: profile[-1],reverse=REVERSE_SEARCH)
+    best_profile = sorted_results[0]
+    compute_sum_cost(running_apps, best_profile[0], best_profile[1], print_cost=PRINT_COST)
+
+
 
     if best_profile is None:
         print('No optimal solution found')
@@ -115,7 +152,6 @@ def optimize(running_apps, fair_allocation=False):
         ### load (switch) best profile ###
         cost =  compute_sum_cost(running_apps, best_profile[0], best_profile[1])
         costs.append(cost)
-        print('minimum cost:',cost)
         for idx, app in enumerate(running_apps):
             app.load_model(best_profile[0][idx])
             app.cpu = best_profile[1][idx]
@@ -125,7 +161,7 @@ def main():
     np.random.seed(1023)
     optimize_now = False
     running_apps = []
-    for i in range(4):
+    for i in range(len(model_types)):
         app_model_type = model_types[i]
         app = App(app_model_type[2], app_model_type[0], *app_model_type[1])
         running_apps.append(app)
@@ -144,12 +180,12 @@ def main():
         if np.random.uniform()>0.999 and len(running_apps) > 2:
             remove_index = 0
 
-            #if running_apps[remove_index].infer_times > 5:
-            app = running_apps.pop(remove_index)
+            if running_apps[remove_index].infer_times > 1:
+                app = running_apps.pop(remove_index)
 
-            app.print_sum()
-            results_dict[app.name].append(app)
-            optimize_now = True
+                app.print_sum()
+                results_dict[app.name].append(app)
+                optimize_now = True
 
 
         if t == 0 or optimize_now:
@@ -164,12 +200,16 @@ def main():
 
             app.run_model()
 
-
+    infers = 0
+    on_time_infers = 0
     for k in sorted(results_dict.keys()):
-        stat_apps(results_dict[k])
+        v = stat_apps(results_dict[k])
+        on_time_infers += v[0]
+        infers += v[1]
 
+    print('on_time_infers',on_time_infers/infers)
     print('cost', np.sum(costs))
-    print('Used time:{:d}'.format( time.time() - begin_time))
+    print('Used time:{:f}'.format( time.time() - begin_time))
 
 
 def stat_apps(finished_apps):
@@ -182,23 +222,39 @@ def stat_apps(finished_apps):
             #print('App exit before inference finished.')
             pass
         else:
-            delta_acc_list.append(np.mean(app.infer_accs) - app.acc_min),
-            delta_latency_list.append(np.array(app.ellapse_times) - app.latency_max / cpu_speed)
+            delta_acc_list.append(np.array(app.infer_accs) - app.acc_min),
+            delta_latency_list.append(np.array(app.ellapse_times) - app.latency_max)
             total_infer_times += app.infer_times
             total_load_times += app.load_times
-    inferences = np.hstack(delta_latency_list).flatten()
-    on_time_inferences = inferences <= 0
+    delta_accuracies = np.hstack(delta_acc_list).flatten()
+    delta_latencies = np.hstack(delta_latency_list).flatten()
+    assert len(delta_latencies) == total_infer_times
+    on_time_inferences = delta_latencies <= 0
     print(finished_apps[0].name)
-    print('Delta acc: {:.2f}, on time rate {:.2f}, average_latency:{:.2f}, infer_times:{:d}, load_times:{:d}'.format(np.mean(delta_acc_list),
+    print('Delta acc: {:.2f}, on time rate {:.2f}, average_latency:{:.2f}, ontime_inferences:{}, infer_times:{:d}, load_times:{:d}'.format(np.mean(delta_accuracies),
                                                                                   np.sum(on_time_inferences.astype(
-                                                                                      int)) / len(inferences),
-                                                                                  np.mean(inferences),
+                                                                                      int)) / len(delta_latencies),
+                                                                                  np.mean(delta_latencies),
+                                                                                   np.sum( on_time_inferences.astype(int)),
                                                                                   np.sum(total_infer_times),
                                                                                   np.sum(total_load_times) ))
+
+    print('{:.3f},{:.3f},{:.3f},{},{:d},{:d}'.format(
+            np.mean(delta_accuracies),
+            np.sum(on_time_inferences.astype(
+                int)) / len(delta_latencies),
+            np.mean(delta_latencies),
+            np.sum(on_time_inferences.astype(int)),
+            np.sum(total_infer_times),
+            np.sum(total_load_times)))
+    return ( np.sum(on_time_inferences.astype(int)), len(delta_latencies) )
 
 
 def compute_sum_cost(running_apps, model_scheme, cpu_scheme, print_cost=False):
     return  np.sum([app.compute_cost(model_scheme[idx],cpu_scheme[idx],print_cost) for idx,app in enumerate(running_apps)])
+
+def compute_max_cost(running_apps, model_scheme, cpu_scheme, print_cost=False):
+    return  np.max([app.compute_cost(model_scheme[idx],cpu_scheme[idx],print_cost) for idx,app in enumerate(running_apps)])
 
 def compute_sum_mem(models):
     return  np.sum([model.size for model in models])

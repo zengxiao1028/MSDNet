@@ -57,9 +57,9 @@ class App(object):
 
     def compute_cost(self, sim_model, sim_cpu, print_cost=False):
 
-        acc_cost = self.acc_min -  sim_model.acc
-        #latency_cost = max( (sim_model.infer_time/sim_cpu - self.latency_max ) , 0)
-        latency_cost = sim_model.infer_time * sim_cpu
+        acc_cost = max( self.acc_min - sim_model.acc, 0)
+        latency_cost = max( sim_model.infer_time /sim_cpu - self.latency_max  , 0)
+        #latency_cost = sim_model.infer_time * sim_cpu
 
 
         if self.model is not None and self.model.name == sim_model.name:
@@ -72,7 +72,6 @@ class App(object):
             #    load_cost = np.abs(sim_model.load_time - old_load_time)
             #else:
                 load_cost = sim_model.load_time
-
 
         if print_cost:
             print('acc:{:.3f}, lag:{:.3f}, load:{:.3f}'.format(acc_cost,self.alpha * latency_cost,self.beta * load_cost,
@@ -111,12 +110,12 @@ class App(object):
                 self.ellapse_times.append(self.ellapse - self.last_time)
                 self.last_time = self.ellapse
 
+                #fire a inference
                 self.infer_times = self.infer_times + 1
                 self.infer_accs.append(self.model.acc)
                 self.infer_remain_time = self.model.infer_time + new_remain_time
             else:
                 self.infer_remain_time = new_remain_time
-
 
         self.ellapse = self.ellapse + 1
 

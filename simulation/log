@@ -1,22 +1,28 @@
-GTSRB
-Delta acc: -0.00, on time rate 0.54, average_latency:181.76, infer_times:386, load_times:34
-cifar10
-Delta acc: -0.05, on time rate 0.26, average_latency:787.96, infer_times:108, load_times:28
-imagenet100
-Delta acc: -0.04, on time rate 0.00, average_latency:2893.48, infer_times:38, load_times:21
-imagenet50
-Delta acc: -0.03, on time rate 0.04, average_latency:1732.39, infer_times:28, load_times:13
-cost 51.5426795058
+GTSRB vgg512
+Delta acc: -0.03, on time rate 1.00, average_latency:287.67, ontime_inferences:302, infer_times:302, load_times:26
+cifar10 resnet50
+Delta acc: -0.09, on time rate 0.53, average_latency:66.93, ontime_inferences:141, infer_times:264, load_times:30
+cifar10 vgg512
+Delta acc: -0.14, on time rate 0.11, average_latency:-9.87, ontime_inferences:15, infer_times:137, load_times:31
+imagenet100 resnet50
+Delta acc: -0.17, on time rate 1.00, average_latency:296.51, ontime_inferences:107, infer_times:107, load_times:19
+imagenet50 resnet50
+Delta acc: -0.24, on time rate 0.56, average_latency:118.85, ontime_inferences:180, infer_times:324, load_times:66
+on_time_infers 0.6569664903
+cost 226.716674483
+Used time:1001.796403
 
 
-
-unfreeze
-GTSRB
-Delta acc: -0.00, on time rate 0.52, average_latency:183.23, infer_times:385, load_times:34
-cifar10
-Delta acc: -0.05, on time rate 0.26, average_latency:795.26, infer_times:108, load_times:28
-imagenet100
-Delta acc: -0.04, on time rate 0.00, average_latency:2898.61, infer_times:38, load_times:21
-imagenet50
-Delta acc: -0.03, on time rate 0.04, average_latency:1737.18, infer_times:28, load_times:13
-cost 51.5426795058
+GTSRB vgg512
+Delta acc: -0.03, on time rate 1.00, average_latency:81.76, ontime_inferences:511, infer_times:513, load_times:26
+cifar10 resnet50
+Delta acc: -0.10, on time rate 0.99, average_latency:42.50, ontime_inferences:277, infer_times:281, load_times:37
+cifar10 vgg512
+Delta acc: -0.15, on time rate 0.99, average_latency:86.66, ontime_inferences:118, infer_times:119, load_times:25
+imagenet100 resnet50
+Delta acc: -0.18, on time rate 1.00, average_latency:785.27, ontime_inferences:66, infer_times:66, load_times:16
+imagenet50 resnet50
+Delta acc: -0.27, on time rate 0.97, average_latency:33.47, ontime_inferences:396, infer_times:410, load_times:52
+on_time_infers 0.984881209503
+cost 278.173600811
+Used time:55.699124
