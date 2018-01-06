@@ -215,8 +215,9 @@ def main():
 def stat_apps(finished_apps):
     delta_acc_list = []
     delta_latency_list = []
-    total_infer_times = 0
-    total_load_times = 0
+    latency_list = []
+    sum_nb_infers = 0
+    sum_nb_switches = 0
     for app in finished_apps:
         if app.infer_times == 0:
             #print('App exit before inference finished.')
@@ -224,20 +225,33 @@ def stat_apps(finished_apps):
         else:
             delta_acc_list.append(np.array(app.infer_accs) - app.acc_min),
             delta_latency_list.append(np.array(app.ellapse_times) - app.latency_max)
-            total_infer_times += app.infer_times
-            total_load_times += app.load_times
+            latency_list = latency_list + app.ellapse_times
+
+            sum_nb_infers += app.nb_infers
+            sum_nb_switches += app.nb_switches
+
+    one_by_one_fps = 1/np.array(latency_list)
+    mean_fps = np.sum(latency_list) / sum_nb_infers
     delta_accuracies = np.hstack(delta_acc_list).flatten()
     delta_latencies = np.hstack(delta_latency_list).flatten()
-    assert len(delta_latencies) == total_infer_times
+    assert len(delta_latencies) == sum_nb_infers
     on_time_inferences = delta_latencies <= 0
     print(finished_apps[0].name)
-    print('Delta acc: {:.2f}, on time rate {:.2f}, average_latency:{:.2f}, ontime_inferences:{}, infer_times:{:d}, load_times:{:d}'.format(np.mean(delta_accuracies),
-                                                                                  np.sum(on_time_inferences.astype(
-                                                                                      int)) / len(delta_latencies),
-                                                                                  np.mean(delta_latencies),
-                                                                                   np.sum( on_time_inferences.astype(int)),
-                                                                                  np.sum(total_infer_times),
-                                                                                  np.sum(total_load_times) ))
+    print('Delta acc: {:.2f}, '
+          'on time rate {:.2f}, '
+          'average_latency:{:.2f}, '
+          'ontime_inferences:{}, '
+          'infer_times:{:d}, '
+          'load_times:{:d}, '
+          'mean_fps:{:.2f}, '
+          'one_by_one_fps:{:.2f}'.format(np.mean(delta_accuracies),
+                                  np.sum(on_time_inferences.astype(int)) / len(delta_latencies),
+                                  np.mean(delta_latencies),
+                                   np.sum( on_time_inferences.astype(int)),
+                                  np.sum(sum_nb_infers),
+                                  np.sum(sum_nb_switches),
+                                     one_by_one_fps,
+                                         mean_fps))
 
     print('{:.3f},{:.3f},{:.3f},{},{:d},{:d}'.format(
             np.mean(delta_accuracies),
@@ -245,8 +259,10 @@ def stat_apps(finished_apps):
                 int)) / len(delta_latencies),
             np.mean(delta_latencies),
             np.sum(on_time_inferences.astype(int)),
-            np.sum(total_infer_times),
-            np.sum(total_load_times)))
+            np.sum(sum_nb_infers),
+            np.sum(sum_nb_switches),
+            one_by_one_fps,
+            mean_fps))
     return ( np.sum(on_time_inferences.astype(int)), len(delta_latencies) )
 
 

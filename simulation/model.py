@@ -14,7 +14,7 @@ class App(object):
 
         self.latency_max = np.random.normal(candidate_models[0].infer_time, 10)
 
-        self.load_times = 0
+        self.nb_switches = 0
         self.alpha = alpha
         self.beta = beta
 
@@ -22,7 +22,7 @@ class App(object):
         self.load_model_time = 0
         self.infer_remain_time = 0
         self.ellapse = 0
-        self.infer_times = 0
+        self.nb_infers = 0
         self.infer_accs = []
         self.last_time = 0
         self.ellapse_times = []
@@ -38,7 +38,7 @@ class App(object):
             pass
         else:
                 self.model = model
-                self.load_times += 1
+                self.nb_switches += 1
                 self.infer_remain_time = self.model.infer_time
 
                 old_load_time = 0 if self.model is None else self.model.load_time
@@ -111,7 +111,7 @@ class App(object):
                 self.last_time = self.ellapse
 
                 #fire a inference
-                self.infer_times = self.infer_times + 1
+                self.nb_infers = self.nb_infers + 1
                 self.infer_accs.append(self.model.acc)
                 self.infer_remain_time = self.model.infer_time + new_remain_time
             else:
@@ -121,7 +121,7 @@ class App(object):
 
     def print_sum(self):
         print(self.name + "Run for {} times, mean acc {:.2f}/{:.2f}, average lag:{:.2f}/{:.2f}".format(
-            self.infer_times, np.mean(self.infer_accs),self.acc_min, np.mean(self.ellapse_times), self.latency_max/cpu_speed))
+            self.nb_infers, np.mean(self.infer_accs),self.acc_min, np.mean(self.ellapse_times), self.latency_max / cpu_speed))
 
     def get_mem_cost(self):
         return 0 if self.model is None else self.model.size
