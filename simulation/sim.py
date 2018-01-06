@@ -5,11 +5,11 @@ import itertools
 import time
 from collections import defaultdict
 import multiprocessing
-PRINT_COST=True
+PRINT_COST=False
 REVERSE_SEARCH=False
 
-fair_allocation = False
-minTotalCost = False
+fair_allocation = True
+minTotalCost = True
 
 
 
@@ -180,7 +180,7 @@ def main():
         if np.random.uniform()>0.999 and len(running_apps) > 2:
             remove_index = 0
 
-            if running_apps[remove_index].infer_times > 1:
+            if running_apps[remove_index].nb_infers > 1:
                 app = running_apps.pop(remove_index)
 
                 app.print_sum()
@@ -219,18 +219,18 @@ def stat_apps(finished_apps):
     sum_nb_infers = 0
     sum_nb_switches = 0
     for app in finished_apps:
-        if app.infer_times == 0:
+        if app.nb_infers == 0:
             #print('App exit before inference finished.')
             pass
         else:
             delta_acc_list.append(np.array(app.infer_accs) - app.acc_min),
             delta_latency_list.append(np.array(app.ellapse_times) - app.latency_max)
-            latency_list = latency_list + app.ellapse_times
+            latency_list.append(app.ellapse_times)
 
             sum_nb_infers += app.nb_infers
             sum_nb_switches += app.nb_switches
 
-    one_by_one_fps = 1/np.array(latency_list)
+    one_by_one_fps = np.mean(1000/np.array(latency_list))
     mean_fps = np.sum(latency_list) / sum_nb_infers
     delta_accuracies = np.hstack(delta_acc_list).flatten()
     delta_latencies = np.hstack(delta_latency_list).flatten()
@@ -253,7 +253,7 @@ def stat_apps(finished_apps):
                                      one_by_one_fps,
                                          mean_fps))
 
-    print('{:.3f},{:.3f},{:.3f},{},{:d},{:d}'.format(
+    print('{:.3f},{:.3f},{:.3f},{},{:d},{:d},{:.2f},{:.2f}'.format(
             np.mean(delta_accuracies),
             np.sum(on_time_inferences.astype(
                 int)) / len(delta_latencies),
