@@ -241,8 +241,8 @@ def stat_apps(finished_apps):
           'on time rate {:.2f}, '
           'average_latency:{:.2f}, '
           'ontime_inferences:{}, '
-          'infer_times:{:d}, '
-          'load_times:{:d}, '
+          'nb_infers:{:d}, '
+          'nb_switches:{:d}, '
           'mean_fps:{:.2f}, '
           'one_by_one_fps:{:.2f}'.format(np.mean(delta_accuracies),
                                   np.sum(on_time_inferences.astype(int)) / len(delta_latencies),
