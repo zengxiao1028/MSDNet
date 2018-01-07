@@ -9,7 +9,7 @@ import multiprocessing
 PRINT_COST = False
 REVERSE_SEARCH = False
 
-fair_allocation = False
+fair_allocation = True
 minTotalCost = True
 
 S_max = 100
