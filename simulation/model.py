@@ -6,14 +6,14 @@ class App(object):
 
     freeze_model = False
 
-    def __init__(self, name, candidate_models,  alpha=0.05, beta=0.001, acc_min=0):
+    def __init__(self, name, candidate_models,  alpha=0.05, beta=0.001, acc_min=0, lag_max=0):
         self.name = name
         self.can_models = candidate_models
 
         self.acc_min = np.random.normal(acc_min, acc_min*0.001)
 
-        self.latency_max = np.random.normal(candidate_models[0].infer_time, 10)
-
+        #self.latency_max = np.random.normal(candidate_models[0].infer_time, 10)
+        self.latency_max = lag_max
         self.nb_switches = 0
         self.alpha = alpha
         self.beta = beta
