@@ -13,7 +13,7 @@ class App(object):
         self.acc_min = np.random.normal(acc_min, acc_min*0.001)
 
         #self.latency_max = np.random.normal(candidate_models[0].infer_time, 10)
-        self.latency_max = lag_max
+        self.latency_max = np.random.normal(lag_max,10)
         self.nb_switches = 0
         self.alpha = alpha
         self.beta = beta
