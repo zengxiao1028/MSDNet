@@ -4,7 +4,7 @@ cpu_speed = 1.0
 
 class App(object):
 
-    freeze_model = False
+    freeze_model = True
 
     def __init__(self, name, candidate_models,  alpha=0.05, beta=0.001, acc_min=0, lag_max=0):
         self.name = name

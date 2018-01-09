@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 from tensorflow.python.framework import graph_util
 from tensorflow.python.framework import graph_io
 from keras.layers import Conv2D,BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense
@@ -8,7 +8,7 @@ from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
 import tensorflow as tf
 from keras.models import Model
-from keras.callbacks import ModelCheckpoint,TensorBoard
+from keras.callbacks import ModelCheckpoint,TensorBoard,EarlyStopping
 from keras.datasets import cifar10
 import scipy,keras
 from keras.preprocessing.image import ImageDataGenerator
@@ -836,6 +836,8 @@ class ResNet50(object):
                                   write_images=False)
 
 
+
+
         self.model.fit_generator(generator=train_generator,
                                  steps_per_epoch= train_generator.samples // self.config['train']['batch_size'],
                                  epochs=epochs,
@@ -988,6 +990,8 @@ class ResNet50(object):
                                      save_best_only=False,
                                      mode='max',
                                      period=1)
+
+
 
         tensorboard = TensorBoard(log_dir=saved_dir,
                                   histogram_freq=0,
@@ -1237,6 +1241,37 @@ def main_imagenet():
         resnet = ResNet50.init_from_folder('./resnet/imagenet/trimmed_models/%s' % models[i+1], best_only=False)
         resnet.train_imagenet()
 
+def main_imagenet50_from_scratch():
+
+    # resnet = ResNet50('./resnet/imagenet50/configs/100.json')
+    # resnet.train_imagenet(training_save_dir = './resnet/imagenet50/from_scratch_results')
+
+    models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
+    models = models[::-1]
+
+    for i in range(0,len(models)-1):
+        trimmer = Trimmer('./resnet/imagenet50/from_scratch_results/100_1',
+                          './resnet/imagenet50/configs/%s.json' % models[i])
+        trimmer.trim(trim_folder='./resnet/imagenet50/scratch_trimmed_models/')
+        resnet = ResNet50.init_from_folder('./resnet/imagenet50/scratch_trimmed_models/%s' % models[i], best_only=False)
+        resnet.train_imagenet('./resnet/imagenet50/from_scratch_results')
+
+def main_imagenet100_from_scratch():
+
+    resnet = ResNet50('./resnet/imagenet/configs/100.json')
+    resnet.train_imagenet(training_save_dir = './resnet/imagenet/from_scratch_results')
+
+    models = ['100', '90', '80', '70', '60', '50', '40', '30', '20', '10', '0', 'b0', 'b10', 'b20']
+    models = models[::-1]
+
+    for i in range(0, len(models) - 1):
+        trimmer = Trimmer('./resnet/imagenet/from_scratch_results/100_1',
+                          './resnet/imagenet/configs/%s.json' % models[i])
+        trimmer.trim(trim_folder='./resnet/imagenet/scratch_trimmed_models/')
+        resnet = ResNet50.init_from_folder('./resnet/imagenet/scratch_trimmed_models/%s' % models[i],
+                                           best_only=False)
+        resnet.train_imagenet('./resnet/imagenet/from_scratch_results')
+
 def main_GTSRB():
 
     # resnet100 = ResNet50('./resnet/GTSRB/configs/100.json')
@@ -1273,8 +1308,8 @@ def main_age():
 
 def main_car():
 
-    # resnet100 = ResNet50('./resnet/car/configs/100.json')
-    # resnet100.eval_car()
+    resnet100 = ResNet50('./resnet/car/configs/100.json')
+    resnet100.eval_car()
     # resnet100.train_car()
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
@@ -1340,6 +1375,7 @@ if __name__ == '__main__':
     #main_flops()
     #main_imagenet()
     #main_age()
-    main_car()
+    #main_car()
    # main_vgg_flops()
     #save_models_for_android()
+    main_imagenet100_from_scratch()

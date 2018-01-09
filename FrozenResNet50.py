@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 from keras.layers import BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense,Conv2D
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -703,6 +703,8 @@ def recover_imagenet(frozen_trainable=False):
 
         resnet.train_cifar10(
             training_save_dir='./resnet/imagenet/%s/' % save_dir,epochs=50)
+
+
 
 
 def recover_GTSRB(frozen_trainable=False):
