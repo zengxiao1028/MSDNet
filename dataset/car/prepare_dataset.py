@@ -1,7 +1,8 @@
 import os
 from shutil import copyfile
 import cv2
-
+import scipy.io as sio
+sio.loadmat
 
 def main():
 
@@ -30,5 +31,10 @@ def main():
                 cv2.imwrite(image_path_2, img)
                 #copyfile(image_path, image_path_2)
 
+def main_2():
+    mat = sio.loadmat('/storage/standford_car/devkit/cars_train_annos.mat')
+    a = mat['annotations'][0][0].real
+    print(len(mat))
+
 if __name__ == '__main__':
-    main()
+    main_2()

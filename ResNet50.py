@@ -1258,8 +1258,8 @@ def main_imagenet50_from_scratch():
 
 def main_imagenet100_from_scratch():
 
-    resnet = ResNet50('./resnet/imagenet/configs/100.json')
-    resnet.train_imagenet(training_save_dir = './resnet/imagenet/from_scratch_results')
+    # resnet = ResNet50('./resnet/imagenet/configs/100.json')
+    # resnet.train_imagenet(training_save_dir = './resnet/imagenet/from_scratch_results')
 
     models = ['100', '90', '80', '70', '60', '50', '40', '30', '20', '10', '0', 'b0', 'b10', 'b20']
     models = models[::-1]
