@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from keras.layers import BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense,Conv2D
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -760,9 +760,10 @@ def recover_age(frozen_trainable=False):
 def recover_car(frozen_trainable=False):
 
     model_types = [
-        ('b20', '20'),
-        ('20', '50'),
-        ('50', '80'),
+        ('b20', 'b10'),
+        ('b10', 'b0'),
+        ('b0', '50'),
+        ('b0', '80'),
     ]
 
     for idx, types in enumerate(model_types):
@@ -779,7 +780,7 @@ def recover_car(frozen_trainable=False):
             resnet.load_frozen_aug_weights('./resnet/car/recover_results/%s_1' %  frozen_model_type )
 
         resnet.train_car(
-            training_save_dir='./resnet/car/%s/' % save_dir,epochs=100)
+            training_save_dir='./resnet/car/%s/' % save_dir,epochs=200)
 
 
 def train_cifar10_early_exit():
@@ -821,5 +822,5 @@ if __name__ == '__main__':
 
     #recover_imagenet(frozen_trainable=False)
     #recover_imagenet(frozen_trainable=True)
-    recover_car(True)
+    recover_car()
     #recover_GTSRB(frozen_trainable=False)

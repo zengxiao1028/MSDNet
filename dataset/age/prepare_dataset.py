@@ -13,9 +13,9 @@ labels = {'(0, 2)':'0',
 def main():
 
     scr_folder = '/storage/faceage/faces'
-    dst_folder = '/storage/faceage/faces2/test'
+    dst_folder = '/storage/faceage/faces3/train'
 
-    with open('fold_0_data.txt') as f:
+    with open('fold_4_data.txt') as f:
         lines = f.readlines()
         print(len(lines))
         for idx,line in enumerate(lines):
@@ -24,12 +24,12 @@ def main():
             else:
                 items = line.split('\t')
                 image_path = items[0] + '/coarse_tilt_aligned_face.' + items[2] + '.' + items[1]
-                if items[3] in labels.keys():
-                    label = labels[items[3]]
-                else:
-                    print('no label')
-                    continue
-
+                # if items[3] in labels.keys():
+                #     label = labels[items[3]]
+                # else:
+                #     print('no label')
+                #     continue
+                label = items[4]
                 save_folder = os.path.join(dst_folder,label)
                 os.makedirs(save_folder, exist_ok=True)
                 copyfile(os.path.join(scr_folder,image_path),os.path.join(save_folder, items[0]+'_' +items[1]))

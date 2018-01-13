@@ -21,7 +21,7 @@
                                 [8,8,256]],
         "name":                  "b10",
         "weights":                "",
-        "classes":                431,
+        "classes":                196,
         "include_top":            true
     },
 
