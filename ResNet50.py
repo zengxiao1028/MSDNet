@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 from tensorflow.python.framework import graph_util
 from tensorflow.python.framework import graph_io
 from keras.layers import Conv2D,BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense
@@ -936,6 +936,96 @@ class ResNet50(object):
         print(evaluation)
         return evaluation
 
+    def train_gender(self, training_save_dir='./resnet/gender/results', epochs = None):
+
+        epochs = epochs if epochs is not None else self.config['train']['epochs']
+
+        train_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input,
+            shear_range=0.1,
+            zoom_range=0.2,
+            horizontal_flip=False,
+            rotation_range=15.,
+            width_shift_range=0.1,
+            height_shift_range=0.1)
+
+        train_generator = train_datagen.flow_from_directory(
+            './dataset/gender/train/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical'
+        )
+
+        test_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
+
+        validation_generator = test_datagen.flow_from_directory(
+            './dataset/gender/test/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
+
+
+
+        #### comppile model ########
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        self.model.summary()
+        #### prepare training ########
+        name = self.model.name
+        os.makedirs(training_save_dir, exist_ok=True)
+        result_counter = len(
+            [log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
+        saved_dir = os.path.join(training_save_dir, name + '_' + str(result_counter))
+        os.makedirs(saved_dir, exist_ok=True)
+        shutil.copyfile(self.config_path, os.path.join(saved_dir, self.config_path.split('/')[-1]))
+        best_checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '_best.h5'),
+                                          monitor='val_acc',
+                                          verbose=1,
+                                          save_best_only=True,
+                                          mode='max',
+                                          period=1)
+
+        checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '.h5'),
+                                     monitor='val_acc',
+                                     verbose=1,
+                                     save_best_only=False,
+                                     mode='max',
+                                     period=1)
+
+        tensorboard = TensorBoard(log_dir=saved_dir,
+                                  histogram_freq=0,
+                                  write_graph=True,
+                                  write_images=False)
+
+
+        self.model.fit_generator(generator=train_generator,
+                                 steps_per_epoch= train_generator.samples // self.config['train']['batch_size'],
+                                 epochs=epochs,
+                                 validation_data=validation_generator,
+                                 validation_steps= validation_generator.samples // self.config['train']['batch_size'],
+                                 callbacks=[best_checkpoint, checkpoint, tensorboard],
+                                 max_queue_size=64)
+    def eval_gender(self, steps=None):
+
+        test_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
+
+        validation_generator = test_datagen.flow_from_directory(
+            './dataset/gender/test/',
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
+
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        if steps is None:
+            steps = validation_generator.samples // self.config['train']['batch_size']
+        evaluation = self.model.evaluate_generator(validation_generator,
+                                                   steps=steps)
+        print(evaluation)
+        return evaluation
+
     def train_car(self, training_save_dir='./resnet/car/results', epochs=None):
 
         epochs = epochs if epochs is not None else self.config['train']['epochs']
@@ -1112,84 +1202,7 @@ class PeriodicSaver(Callback):
             self.model.save(name)
 
 def main_cifar10():
-    # resnet100 = ResNet50('./resnet/configs/100.json')
-    #
-    # print('##### Training resnet90 #####')
-    # trimmer = Trimmer('./resnet/results/100_1','./resnet/configs/90.json')
-    # trimmer.trim()
-    # resnet90 = ResNet50.init_from_folder('./resnet/trimmed_models/90')
-    # resnet90.eval_cifar10()
-    # resnet90.train_cifar10()
 
-    # print('##### Training resnet80 #####')
-    # trimmer = Trimmer('./resnet/results/90_1', './resnet/configs/80.json')
-    # trimmer.trim()
-    # resnet80 = ResNet50.init_from_folder('./resnet/trimmed_models/80')
-    # resnet80.eval_cifar10()
-    # resnet80.train_cifar10()
-
-    # print('##### Training resnet70 ##### ')
-    # trimmer = Trimmer('./resnet/results/80_1', './resnet/configs/70.json')
-    # trimmer.trim()
-    # resnet70 = ResNet50.init_from_folder('./resnet/trimmed_models/70')
-    # resnet70.eval_cifar10()
-    # resnet70.train_cifar10()
-    #
-    # print('##### Training resnet60 ##### ')
-    # trimmer = Trimmer('./resnet/results/70_1', './resnet/configs/60.json')
-    # trimmer.trim()
-    # resnet60 = ResNet50.init_from_folder('./resnet/trimmed_models/60')
-    # resnet60.eval_cifar10()
-    # resnet60.train_cifar10()
-    #
-    # print('##### Training resnet50 ##### ')
-    # trimmer = Trimmer('./resnet/results/60_1', './resnet/configs/50.json')
-    # trimmer.trim()
-    # resnet50 = ResNet50.init_from_folder('./resnet/trimmed_models/50')
-    # resnet50.eval_cifar10()
-    # resnet50.train_cifar10()
-    #
-    # print('##### Training resnet40 ##### ')
-    # trimmer = Trimmer('./resnet/results/50_1', './resnet/configs/40.json')
-    # trimmer.trim()
-    # resnet40 = ResNet50.init_from_folder('./resnet/trimmed_models/40')
-    # resnet40.eval_cifar10()
-    # resnet40.train_cifar10()
-    #
-    # print('##### Training resnet30 ##### ')
-    # trimmer = Trimmer('./resnet/results/40_1', './resnet/configs/30.json')
-    # trimmer.trim()
-    # resnet30 = ResNet50.init_from_folder('./resnet/trimmed_models/30')
-    # resnet30.eval_cifar10()
-    # resnet30.train_cifar10()
-    #
-    # print('##### Training resnet20 ##### ')
-    # trimmer = Trimmer('./resnet/results/30_1', './resnet/configs/20.json')
-    # trimmer.trim()
-    # resnet20 = ResNet50.init_from_folder('./resnet/trimmed_models/20')
-    # resnet20.eval_cifar10()
-    # resnet20.train_cifar10()
-
-    # print('##### Training resnet10 ##### ')
-    # trimmer = Trimmer('./resnet/results/20_1', './resnet/configs/10.json')
-    # trimmer.trim()
-    # resnet10 = ResNet50.init_from_folder('./resnet/trimmed_models/10')
-    # resnet10.eval_cifar10()
-    # resnet10.train_cifar10()
-
-    # print('##### Training resnet0 ##### ')
-    # trimmer = Trimmer('./resnet/results/10_1', './resnet/configs/0.json')
-    # trimmer.trim()
-    # resnet0 = ResNet50.init_from_folder('./resnet/trimmed_models/0')
-    # resnet0.eval_cifar10()
-    # resnet0.train_cifar10()
-
-    # print('##### Training resnetb0 ##### ')
-    # trimmer = Trimmer('./resnet/results/0_1', './resnet/configs/b0.json')
-    # trimmer.trim()
-    # resnetb0 = ResNet50.init_from_folder('./resnet/trimmed_models/b0')
-    # resnetb0.eval_cifar10()
-    # resnetb0.train_cifar10()
 
     print('##### Training resnetb20 ##### ')
     trimmer = Trimmer('./resnet/results/b10_1', './resnet/configs/b20.json')
@@ -1198,32 +1211,7 @@ def main_cifar10():
     resnetb20.eval_cifar10()
     resnetb20.train_cifar10()
 
-    # trim_config_path = "./resnet/configs/90.json"
-    # with open(trim_config_path) as config_buffer:
-    #     config = json.load(config_buffer)
-    # trimmed_model = resnet100.trim(config['model']['filters'],'trim')
-    # trimmed_model.save(os.path.join('./resnet/ResNetModels',trimmed_model.name+'.h5'))
-    # keras.backend.clear_session()
-    #
-    # resnet2 = ResNet50(trim_model_filter_configs, trimmed_model.name, include_top=True,
-    #                    weights = os.path.join('./resnet/ResNetModels',trimmed_model.name+'.h5'))
-    # resnet2.model.summary()
-    # print(resnet2.trimfrom)
 
-
-    #
-    # config_path = './resnet/voc2007_config.json'
-    # with open(config_path) as config_buffer:
-    #     config = json.load(config_buffer)
-    # resnet1 = _resNet50(config)
-    # resnet1.train_cifar10(train_generator, validation_generator)
-
-    # img = image.load_img('dog.jpg',target_size=(224,224))
-    # x = image.img_to_array(img).astype(np.uint8)
-    # x = np.expand_dims(x, axis=0)
-    # x = preprocess_input(x)
-    # preds = resnet1.model.predict(x)
-    # print('Predicted:', decode_predictions(preds))
 
 def main_imagenet():
 
@@ -1298,30 +1286,30 @@ def main_age():
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
     for i in range(0,len(models)-1):
-        print('Training resnet%s for car' % models[i+1])
+        print('Training resnet%s for age' % models[i+1])
 
-        trimmer = Trimmer('./resnet/car/results/%s_1' % models[i],'./resnet/car/configs/%s.json' % models[i+1])
-        trimmer.trim(trim_folder = './resnet/car/trimmed_models/')
-        resnet = ResNet50.init_from_folder('./resnet/car/trimmed_models/%s' % models[i+1],best_only=False)
+        trimmer = Trimmer('./resnet/age/results/%s_1' % models[i],'./resnet/age/configs/%s.json' % models[i+1])
+        trimmer.trim(trim_folder = './resnet/age/trimmed_models/')
+        resnet = ResNet50.init_from_folder('./resnet/age/trimmed_models/%s' % models[i+1],best_only=False)
         resnet.eval_age()
         resnet.train_age()
 
 def main_gender():
 
-    resnet100 = ResNet50('./resnet/age/configs/100.json')
-    resnet100.eval_age()
-    resnet100.train_age()
+    resnet100 = ResNet50('./resnet/gender/configs/100.json')
+    resnet100.eval_gender()
+    resnet100.train_gender()
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
     for i in range(0,len(models)-1):
-        print('Training resnet%s for car' % models[i+1])
+        print('Training resnet%s for gender' % models[i+1])
 
-        trimmer = Trimmer('./resnet/car/results/%s_1' % models[i],'./resnet/car/configs/%s.json' % models[i+1])
-        trimmer.trim(trim_folder = './resnet/car/trimmed_models/')
-        resnet = ResNet50.init_from_folder('./resnet/car/trimmed_models/%s' % models[i+1],best_only=False)
-        resnet.eval_age()
-        resnet.train_age()
+        trimmer = Trimmer('./resnet/gender/results/%s_1' % models[i],'./resnet/gender/configs/%s.json' % models[i+1])
+        trimmer.trim(trim_folder = './resnet/gender/trimmed_models/')
+        resnet = ResNet50.init_from_folder('./resnet/gender/trimmed_models/%s' % models[i+1],best_only=False)
+        resnet.eval_gender()
+        resnet.train_gender()
 
 def main_car():
 
@@ -1391,7 +1379,7 @@ if __name__ == '__main__':
     #main_GTSRB()
     #main_flops()
     #main_imagenet()
-    #main_age()
+    main_gender()
     #main_car()
    # main_vgg_flops()
     #save_models_for_android()
