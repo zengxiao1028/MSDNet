@@ -30,9 +30,11 @@ def main():
                 #     print('no label')
                 #     continue
                 label = items[4]
+                if label not in ['u','f','m']:
+                    print('error')
                 save_folder = os.path.join(dst_folder,label)
                 os.makedirs(save_folder, exist_ok=True)
-                copyfile(os.path.join(scr_folder,image_path),os.path.join(save_folder, items[0]+'_' +items[1]))
+                #copyfile(os.path.join(scr_folder,image_path),os.path.join(save_folder, items[0]+'_' +items[1]))
 
 if __name__ == '__main__':
     main()

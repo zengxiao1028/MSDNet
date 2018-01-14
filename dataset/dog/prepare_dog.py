@@ -32,8 +32,8 @@ def main():
                 #copyfile(image_path, image_path_2)
 
 def main_2():
-    dataset = 'train'
-    src_folder = '/storage/dog/images'
+    dataset = 'test'
+    src_folder = '/storage/dog/Images'
     dst_folder = '/storage/dog/%s' % dataset
 
     mat = sio.loadmat('./%s_list.mat' % dataset)

@@ -756,6 +756,30 @@ def recover_age(frozen_trainable=False):
         resnet.train_age(
             training_save_dir='./resnet/age/%s/' % save_dir,epochs=40)
 
+def recover_gender(frozen_trainable=False):
+
+    model_types = [
+        ('b20', '0'),
+        ('0', '10'),
+        ('10', '70'),
+        ('70', '80'),
+    ]
+    for idx, types in enumerate(model_types):
+        K.clear_session()
+        frozen_model_type, recover_model_type = types
+        resnet = FrozenResNet50(config_path = './resnet/gender/configs/%s.json' % recover_model_type,
+                                frozen_model_config_path = './resnet/gender/configs/%s.json' % frozen_model_type,
+                                frozen_trainbale = frozen_trainable)
+
+        save_dir = 'recover_results' if frozen_trainable is False else 'unfreeze_recover_results'
+        if frozen_model_type == 'b20':
+            resnet.load_frozen_aug_weights('./resnet/gender/results/%s_1' % frozen_model_type)
+        else:
+            resnet.load_frozen_aug_weights('./resnet/gender/recover_results/%s_1' %  frozen_model_type )
+
+        resnet.train_gender(
+            training_save_dir='./resnet/gender/%s/' % save_dir,epochs=50)
+
 
 def recover_car(frozen_trainable=False):
 
@@ -763,7 +787,7 @@ def recover_car(frozen_trainable=False):
         ('b20', 'b10'),
         ('b10', 'b0'),
         ('b0', '50'),
-        ('b0', '80'),
+        ('50', '80'),
     ]
 
     for idx, types in enumerate(model_types):
@@ -822,5 +846,6 @@ if __name__ == '__main__':
 
     #recover_imagenet(frozen_trainable=False)
     #recover_imagenet(frozen_trainable=True)
-    recover_car()
+    #recover_car()
+    recover_gender()
     #recover_GTSRB(frozen_trainable=False)

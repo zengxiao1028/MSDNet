@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 from tensorflow.python.framework import graph_util
 from tensorflow.python.framework import graph_io
 from keras.layers import Conv2D,BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense
@@ -494,7 +494,7 @@ class ResNet50(object):
         #### comppile model ########
         opt = adam(lr=1e-4)
         self.model.compile(opt,loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-        self.model.summary()
+        #self.model.summary()
         #### prepare training ########
         name = self.model.name
         os.makedirs(training_save_dir,exist_ok=True)
@@ -880,7 +880,7 @@ class ResNet50(object):
         #### comppile model ########
         opt = adam(lr=1e-4)
         self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
-        self.model.summary()
+        # self.model.summary()
         #### prepare training ########
         name = self.model.name
         os.makedirs(training_save_dir, exist_ok=True)
@@ -970,7 +970,7 @@ class ResNet50(object):
         #### comppile model ########
         opt = adam(lr=1e-4)
         self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
-        self.model.summary()
+        # self.model.summary()
         #### prepare training ########
         name = self.model.name
         os.makedirs(training_save_dir, exist_ok=True)
@@ -1296,9 +1296,9 @@ def main_age():
 
 def main_gender():
 
-    resnet100 = ResNet50('./resnet/gender/configs/100.json')
-    resnet100.eval_gender()
-    resnet100.train_gender()
+    # resnet100 = ResNet50('./resnet/gender/configs/100.json')
+    # resnet100.eval_gender()
+    # resnet100.train_gender()
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
