@@ -1180,6 +1180,7 @@ class ResNet50(object):
                                   histogram_freq=0,
                                   write_graph=True,
                                   write_images=False)
+        e_s = EarlyStopping(patience=5)
 
 
         self.model.fit_generator(generator=train_generator,
