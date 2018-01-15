@@ -7,6 +7,7 @@ from keras import layers
 from keras.models import Model
 from keras.callbacks import ModelCheckpoint,TensorBoard
 from keras.datasets import cifar10
+from keras.layers import Dropout
 import scipy,keras,h5py
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
@@ -279,18 +280,18 @@ class FrozenResNet50(ResNet50):
         x = self.identity_block(x, 3, filters_config[5],frozen_dim_configs[4], frozen_filters_config[5], stage=3, block='b')
         x = self.identity_block(x, 3, filters_config[6],frozen_dim_configs[5], frozen_filters_config[6], stage=3, block='c')
         x = self.identity_block(x, 3, filters_config[7],frozen_dim_configs[6], frozen_filters_config[7], stage=3, block='d')
-
+        x = Dropout(0.5)(x)
         x = self.conv_block(x, 3, filters_config[8],frozen_dim_configs[7], frozen_filters_config[8], stage=4, block='a')
         x = self.identity_block(x, 3, filters_config[9],frozen_dim_configs[8], frozen_filters_config[9], stage=4, block='b')
         x = self.identity_block(x, 3, filters_config[10],frozen_dim_configs[9], frozen_filters_config[10], stage=4, block='c')
         x = self.identity_block(x, 3, filters_config[11],frozen_dim_configs[10], frozen_filters_config[11], stage=4, block='d')
         x = self.identity_block(x, 3, filters_config[12],frozen_dim_configs[11], frozen_filters_config[12], stage=4, block='e')
         x = self.identity_block(x, 3, filters_config[13],frozen_dim_configs[12], frozen_filters_config[13], stage=4, block='f')
-
+        x = Dropout(0.5)(x)
         x = self.conv_block(x, 3, filters_config[14],frozen_dim_configs[13], frozen_filters_config[14], stage=5, block='a')
         x = self.identity_block(x, 3, filters_config[15],frozen_dim_configs[14], frozen_filters_config[15], stage=5, block='b')
         x = self.identity_block(x, 3, filters_config[16],frozen_dim_configs[15], frozen_filters_config[16], stage=5, block='c')
-
+        x = Dropout(0.5)(x)
         x = AveragePooling2D((7, 7), name='avg_pool')(x)
 
         if include_top:
