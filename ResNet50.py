@@ -1180,7 +1180,7 @@ class ResNet50(object):
                                   histogram_freq=0,
                                   write_graph=True,
                                   write_images=False)
-        e_s = EarlyStopping(patience=5)
+        e_s = EarlyStopping(patience=10)
 
 
         self.model.fit_generator(generator=train_generator,
@@ -1188,7 +1188,7 @@ class ResNet50(object):
                                  epochs=epochs,
                                  validation_data=validation_generator,
                                  validation_steps= validation_generator.samples // self.config['train']['batch_size'],
-                                 callbacks=[best_checkpoint, checkpoint, tensorboard],
+                                 callbacks=[best_checkpoint, checkpoint, tensorboard, e_s],
                                  max_queue_size=64)
     def eval_scene(self, steps=None):
 
