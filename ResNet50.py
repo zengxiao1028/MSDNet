@@ -1186,7 +1186,7 @@ class ResNet50(object):
                                  validation_steps= validation_generator.samples // self.config['train']['batch_size'],
                                  callbacks=[best_checkpoint, checkpoint, tensorboard],
                                  max_queue_size=64)
-    def eval_dog(self, steps=None):
+    def eval_scene(self, steps=None):
 
         test_datagen = ImageDataGenerator(
             preprocessing_function=preprocess_input)
