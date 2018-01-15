@@ -21,7 +21,7 @@
                                 [512,512,2048]],
         "name":                  "100",
         "weights":                "imagenet",
-        "classes":                365,
+        "classes":                10,
         "include_top":            true
 
     },
