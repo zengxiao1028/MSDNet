@@ -33,11 +33,12 @@ def main():
 
 def main_2():
     dataset = 'train'
-    src_folder = '/storage/scene/images'
+    src_folder = '/storage/scene/Images'
     dst_folder = '/storage/scene/%s' % dataset
     filename = '%s.txt' % dataset
     with open(filename) as f:
         lines = f.read().splitlines()
+        print(dataset,len(lines))
         for line in lines:
 
 

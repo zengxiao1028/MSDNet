@@ -1131,6 +1131,7 @@ class ResNet50(object):
 
         train_generator = train_datagen.flow_from_directory(
             './dataset/scene/train/',
+            classes=['crosswalk','bridge','harbor','highway', 'heliport','ocean','parking_lot','downtown' ,'desert-sand','snowfield'],
             target_size=(224, 224),
             batch_size=self.config['train']['batch_size'],
             class_mode='categorical'
@@ -1141,6 +1142,8 @@ class ResNet50(object):
 
         validation_generator = test_datagen.flow_from_directory(
             './dataset/scene/test/',
+            classes=['crosswalk', 'bridge', 'harbor', 'highway', 'heliport', 'ocean', 'parking_lot', 'downtown', 'desert-sand',
+             'snowfield'],
             target_size=(224, 224),
             batch_size=self.config['train']['batch_size'],
             class_mode='categorical')
@@ -1194,6 +1197,7 @@ class ResNet50(object):
         validation_generator = test_datagen.flow_from_directory(
             './dataset/scene/test/',
             target_size=(224, 224),
+            classes=['crosswalk','bridge','harbor','highway', 'heliport','ocean','parking_lot','downtown' ,'desert-sand','snowfield'],
             batch_size=self.config['train']['batch_size'],
             class_mode='categorical')
 
@@ -1518,7 +1522,7 @@ def main_scene():
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
-    for i in range(7,len(models)-1):
+    for i in range(0,len(models)-1):
         print('Training resnet%s for scene' % models[i+1])
 
         trimmer = Trimmer('./resnet/scene/results/%s_1' % models[i],'./resnet/scene/configs/%s.json' % models[i+1])
