@@ -21,7 +21,7 @@
                                 [16,16,256]],
         "name":                  "b0",
         "weights":                "",
-        "classes":                67,
+        "classes":                365,
         "include_top":            true
     },
 
