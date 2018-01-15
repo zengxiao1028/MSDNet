@@ -1405,13 +1405,13 @@ def main_gender():
 
 def main_dog():
 
-    resnet100 = ResNet50('./resnet/dog/configs/100.json')
-    resnet100.eval_dog()
-    resnet100.train_dog()
+    # resnet100 = ResNet50('./resnet/dog/configs/100.json')
+    # resnet100.eval_dog()
+    # resnet100.train_dog()
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
-    for i in range(0,len(models)-1):
+    for i in range(7,len(models)-1):
         print('Training resnet%s for dog' % models[i+1])
 
         trimmer = Trimmer('./resnet/dog/results/%s_1' % models[i],'./resnet/dog/configs/%s.json' % models[i+1])
