@@ -863,7 +863,29 @@ def train_cifar10_early_exit():
 
         resnet.train_cifar10_early_exit(training_save_dir='./resnet/ee_results', pointwise_conv_filters = pointwise_conv_filters)
 
+def recover_scene(frozen_trainable=False):
 
+    model_types = [
+        ('b10', '10'),
+        ('10', '40'),
+        ('40', '60'),
+        ('60', '80'),
+    ]
+    for idx, types in enumerate(model_types):
+        K.clear_session()
+        frozen_model_type, recover_model_type = types
+        resnet = FrozenResNet50(config_path = './resnet/scene/configs/%s.json' % recover_model_type,
+                                frozen_model_config_path = './resnet/scene/configs/%s.json' % frozen_model_type,
+                                frozen_trainbale = frozen_trainable)
+
+        save_dir = 'recover_results' if frozen_trainable is False else 'unfreeze_recover_results'
+        if frozen_model_type == 'b10':
+            resnet.load_frozen_aug_weights('./resnet/scene/results/%s_1' % frozen_model_type)
+        else:
+            resnet.load_frozen_aug_weights('./resnet/scene/recover_results/%s_1' %  frozen_model_type )
+
+        resnet.train_scene(
+            training_save_dir='./resnet/scene/%s/' % save_dir,epochs=50)
 
 if __name__ == '__main__':
 
@@ -873,5 +895,6 @@ if __name__ == '__main__':
     #recover_imagenet(frozen_trainable=False)
     #recover_imagenet(frozen_trainable=True)
     #recover_car()
-    recover_dog()
+    #recover_dog()
     #recover_GTSRB(frozen_trainable=False)
+    recover_scene()
