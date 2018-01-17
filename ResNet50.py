@@ -1599,7 +1599,6 @@ def main_vgg_flops():
             K.clear_session()
             model = load_model(os.path.join(folder,model_name))
             model.summary()
-
             sum = 0
             for layer in model.layers:
                 if type(layer) is Conv2D:
