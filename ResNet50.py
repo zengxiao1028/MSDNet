@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from tensorflow.python.framework import graph_util
 from tensorflow.python.framework import graph_io
 from keras.layers import Conv2D,BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense
@@ -1517,13 +1517,13 @@ def main_dog():
 
 def main_scene():
 
-    resnet100 = ResNet50('./resnet/scene/configs/100.json')
-    resnet100.eval_scene()
-    resnet100.train_scene()
+    # resnet100 = ResNet50('./resnet/scene/configs/100.json')
+    # resnet100.eval_scene()
+    # resnet100.train_scene()
 
     models = ['100','90','80','70','60','50','40','30','20','10','0','b0','b10','b20']
 
-    for i in range(0,len(models)-1):
+    for i in range(1,len(models)-1):
         print('Training resnet%s for scene' % models[i+1])
 
         trimmer = Trimmer('./resnet/scene/results/%s_1' % models[i],'./resnet/scene/configs/%s.json' % models[i+1])
