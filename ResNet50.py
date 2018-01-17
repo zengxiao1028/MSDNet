@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 from tensorflow.python.framework import graph_util
 from tensorflow.python.framework import graph_io
 from keras.layers import Conv2D,BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense
@@ -1533,6 +1533,22 @@ def main_scene():
         resnet.train_scene()
 
 
+def main_scene_from_scratch():
+
+    resnet = ResNet50('./resnet/scene/configs/100.json')
+    resnet.train_imagenet(training_save_dir = './resnet/scene/from_scratch_results',epochs=1)
+
+    models = ['100', '80', '60','40','10','b10']
+    models = models[::-1]
+
+    for i in range(0, len(models) - 1):
+        trimmer = Trimmer('./resnet/scene/from_scratch_results/100_1',
+                          './resnet/scene/configs/%s.json' % models[i])
+        trimmer.trim(trim_folder='./resnet/imagenet/scratch_trimmed_models/')
+        resnet = ResNet50.init_from_folder('./resnet/imagenet/scratch_trimmed_models/%s' % models[i],
+                                           best_only=False)
+        resnet.train_imagenet('./resnet/imagenet/from_scratch_results')
+
 def main_car():
 
     resnet100 = ResNet50('./resnet/car/configs/100.json')
@@ -1609,4 +1625,4 @@ if __name__ == '__main__':
    # main_imagenet50_from_scratch()
 
    # main_dog()
-   main_scene()
+   main_scene_from_scratch()
