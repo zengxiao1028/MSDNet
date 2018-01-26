@@ -1,28 +1,15 @@
-GTSRB vgg512
-Delta acc: -0.03, on time rate 1.00, average_latency:287.67, ontime_inferences:302, infer_times:302, load_times:26
-cifar10 resnet50
-Delta acc: -0.09, on time rate 0.53, average_latency:66.93, ontime_inferences:141, infer_times:264, load_times:30
-cifar10 vgg512
-Delta acc: -0.14, on time rate 0.11, average_latency:-9.87, ontime_inferences:15, infer_times:137, load_times:31
-imagenet100 resnet50
-Delta acc: -0.17, on time rate 1.00, average_latency:296.51, ontime_inferences:107, infer_times:107, load_times:19
-imagenet50 resnet50
-Delta acc: -0.24, on time rate 0.56, average_latency:118.85, ontime_inferences:180, infer_times:324, load_times:66
-on_time_infers 0.6569664903
-cost 226.716674483
-Used time:1001.796403
+-0.039,0.951,-17.564,274,288,44,2.13,2.08
+-0.144,0.710,29.224,196,276,58,3.27,3.04
+-0.008,0.066,70.934,16,243,29,1.49,1.48
+-0.047,0.683,-272.852,28,41,12,0.60,0.58
+-0.114,0.004,89.894,1,223,99,2.89,2.63
+on_time_infers 0.480859010271
 
-
-GTSRB vgg512
-Delta acc: -0.03, on time rate 1.00, average_latency:81.76, ontime_inferences:511, infer_times:513, load_times:26
-cifar10 resnet50
-Delta acc: -0.10, on time rate 0.99, average_latency:42.50, ontime_inferences:277, infer_times:281, load_times:37
-cifar10 vgg512
-Delta acc: -0.15, on time rate 0.99, average_latency:86.66, ontime_inferences:118, infer_times:119, load_times:25
-imagenet100 resnet50
-Delta acc: -0.18, on time rate 1.00, average_latency:785.27, ontime_inferences:66, infer_times:66, load_times:16
-imagenet50 resnet50
-Delta acc: -0.27, on time rate 0.97, average_latency:33.47, ontime_inferences:396, infer_times:410, load_times:52
-on_time_infers 0.984881209503
-cost 278.173600811
-Used time:55.699124
+-0.007,0.971,-18.723,133,137,15,2.07,2.06
+-0.113,0.708,43.795,310,438,77,3.22,2.93
+0.086,0.008,82.692,1,125,16,1.46,1.45
+0.057,0.864,-535.209,51,59,27,0.72,0.69
+-0.075,0.767,35.688,376,490,77,3.25,3.00
+on_time_infers 0.697357886309
+cost 90.3712304845
+Used time:893.179887

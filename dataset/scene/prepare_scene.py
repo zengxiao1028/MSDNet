@@ -4,6 +4,7 @@ import cv2
 import scipy.io as sio
 sio.loadmat
 
+
 def main():
 
     set ='train'
@@ -50,4 +51,6 @@ def main_2():
 
 
 if __name__ == '__main__':
-    main_2()
+    #main_2()
+    classes = classes_str.split('\t')
+    print(classes)

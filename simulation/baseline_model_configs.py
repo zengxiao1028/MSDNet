@@ -40,7 +40,7 @@ VGG512_GTSRB_configs = [
     ('GTSRB VGG16-E005p',       0.04,       3,    0.9046,       42,         0.18),
 ]
 
-VGG512_gender_configs = [
+VGG2048_gender_configs = [
     ('gender VGG16-S50p',    10.13,   231,     0.8213,     921,    30.955),
     ('gender VGG16-S30p',    2.8,   114,     0.7939,     328,    14.173),
     ('gender VGG16-S20p',    1.9,   68,      0.762,     243,     8.653),

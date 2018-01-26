@@ -35,6 +35,7 @@ def transform(model_name , input_fld, output_fld):
     K.clear_session()
     K.set_learning_phase(0)
     net_model = load_model(weight_file_path)
+    net_model.summary()
     num_output = len(net_model.outputs)
     pred = [None] * num_output
     pred_node_names = [None] * num_output
@@ -58,11 +59,12 @@ def transform(model_name , input_fld, output_fld):
 
 
 def main():
+
     folder = '/home/xiao/NestDNN/vgg4096'
     model_names = os.listdir(folder)
 
     for model_name in model_names:
-        if model_name.find('S10')>0:
+        if model_name.find('S10p.h5')>0:
             transform(model_name.split('.')[0],folder,folder)
 
 

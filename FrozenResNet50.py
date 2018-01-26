@@ -1,6 +1,6 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 from keras.layers import BatchNormalization,Activation,Input,MaxPooling2D,AveragePooling2D,Flatten,Dense,Conv2D
 from keras.layers import GlobalAveragePooling2D,GlobalMaxPooling2D
 from keras import layers
@@ -280,18 +280,18 @@ class FrozenResNet50(ResNet50):
         x = self.identity_block(x, 3, filters_config[5],frozen_dim_configs[4], frozen_filters_config[5], stage=3, block='b')
         x = self.identity_block(x, 3, filters_config[6],frozen_dim_configs[5], frozen_filters_config[6], stage=3, block='c')
         x = self.identity_block(x, 3, filters_config[7],frozen_dim_configs[6], frozen_filters_config[7], stage=3, block='d')
-        x = Dropout(0.5)(x)
+        #x = Dropout(0.5)(x)
         x = self.conv_block(x, 3, filters_config[8],frozen_dim_configs[7], frozen_filters_config[8], stage=4, block='a')
         x = self.identity_block(x, 3, filters_config[9],frozen_dim_configs[8], frozen_filters_config[9], stage=4, block='b')
         x = self.identity_block(x, 3, filters_config[10],frozen_dim_configs[9], frozen_filters_config[10], stage=4, block='c')
         x = self.identity_block(x, 3, filters_config[11],frozen_dim_configs[10], frozen_filters_config[11], stage=4, block='d')
         x = self.identity_block(x, 3, filters_config[12],frozen_dim_configs[11], frozen_filters_config[12], stage=4, block='e')
         x = self.identity_block(x, 3, filters_config[13],frozen_dim_configs[12], frozen_filters_config[13], stage=4, block='f')
-        x = Dropout(0.5)(x)
+        #x = Dropout(0.5)(x)
         x = self.conv_block(x, 3, filters_config[14],frozen_dim_configs[13], frozen_filters_config[14], stage=5, block='a')
         x = self.identity_block(x, 3, filters_config[15],frozen_dim_configs[14], frozen_filters_config[15], stage=5, block='b')
         x = self.identity_block(x, 3, filters_config[16],frozen_dim_configs[15], frozen_filters_config[16], stage=5, block='c')
-        x = Dropout(0.5)(x)
+        x = Dropout(0.75)(x)
         x = AveragePooling2D((7, 7), name='avg_pool')(x)
 
         if include_top:
@@ -866,26 +866,28 @@ def train_cifar10_early_exit():
 def recover_scene(frozen_trainable=False):
 
     model_types = [
-        ('b10', '10'),
-        ('10', '40'),
-        ('40', '60'),
-        ('60', '80'),
+        #('b20', '10'),
+        #('10', '40'),
+        #('40', '70'),
+        ('70', '100'),
     ]
     for idx, types in enumerate(model_types):
         K.clear_session()
         frozen_model_type, recover_model_type = types
         resnet = FrozenResNet50(config_path = './resnet/scene/configs/%s.json' % recover_model_type,
                                 frozen_model_config_path = './resnet/scene/configs/%s.json' % frozen_model_type,
-                                frozen_trainbale = frozen_trainable)
+                                frozen_trainbale = frozen_trainable,
+                                #weights_path='./resnet/scene/recover_results/{}_1/{}_best.h5'.format(recover_model_type,recover_model_type)
+                                )
 
         save_dir = 'recover_results' if frozen_trainable is False else 'unfreeze_recover_results'
-        if frozen_model_type == 'b10':
+        if frozen_model_type == 'b20':
             resnet.load_frozen_aug_weights('./resnet/scene/results/%s_1' % frozen_model_type)
         else:
             resnet.load_frozen_aug_weights('./resnet/scene/recover_results/%s_1' %  frozen_model_type )
 
         resnet.train_scene(
-            training_save_dir='./resnet/scene/%s/' % save_dir,epochs=50)
+            training_save_dir='./resnet/scene/%s/' % save_dir,epochs=100)
 
 if __name__ == '__main__':
 

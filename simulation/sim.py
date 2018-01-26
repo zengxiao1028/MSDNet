@@ -9,7 +9,7 @@ from simulation.model_configs import *
 PRINT_COST = False
 REVERSE_SEARCH = False
 
-fair_allocation = False
+fair_allocation = True
 minTotalCost = True
 
 
@@ -24,16 +24,19 @@ resnet50_scene_Models = [Model.init_from_list('resnet', config) for config in re
 
 resnet50_imagenet100_Models = [Model.init_from_list('resnet', config) for config in resnet50_imagenet100_configs]
 
-vgg4096_cifar10_Models = [Model.init_from_list('vgg512', config) for config in VGG4096_cifar10_configs]
+vgg4096_cifar10_Models = [Model.init_from_list('vgg4096', config) for config in VGG4096_cifar10_configs]
 
 vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG512_GTSRB_configs]
+
+vgg2048_gender_Models = [Model.init_from_list('vgg2048', config) for config in VGG2048_gender_configs]
 
                                             #alpha,     beta,   acc_min, latency_max
 model_types = [(resnet50_imagenet50_Models,  (1e-3,     1e-3,   0.70,   301),    'imagenet50 resnet50'),
                (resnet50_scene_Models,       (1e-3,     1e-3,   0.80,   301),    'cifar10 resnet50'),
                (resnet50_imagenet100_Models, (1e-3,     1e-3,   0.80,   2000),  'imagenet100 resnet50'),
                (vgg4096_cifar10_Models,      (5e-4,     1e-3,   0.75,   605),    'cifar10 vgg4096'),
-               (vgg512_GTSRB_Models,         (1e-2,     1e-4,   0.96,   500),    'GTSRB vgg512')
+               (vgg512_GTSRB_Models,         (1e-2,     1e-4,   0.96,   500),    'GTSRB vgg512'),
+               (vgg2048_gender_Models,      (1e-3,     1e-3,   0.78,   300),    'gender vgg2048')
                ]
 
 results_dict = {each[2]: [] for each in model_types}
