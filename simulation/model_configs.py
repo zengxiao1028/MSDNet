@@ -17,7 +17,7 @@ resnet50_scene_configs = [
 
 # name, GFlops, load_time, acc, inference_time, model_size
 resnet50_imagenet100_configs = [
-    ('imagenet100 100',     5.32,       240,        0.9008,     502,    23.793),
+    ('imagenet100 100',     5.32,       240,        0.9009,     502,    23.793),
     ('imagenet100 90',      4,          144,        0.8909,     378,    15.61),
     ('imagenet100 80',      3.07,       103,        0.879,      301,    10.606),
     ('imagenet100 70',      2.33,       65,         0.8622,     255,    6.467),
@@ -27,9 +27,9 @@ resnet50_imagenet100_configs = [
             # name, GFlops, load_time, acc, inference_time, model_size
 VGG4096_cifar10_configs = [
     ('cifar10 VGG16-E40p',      7.38,       403,     0.8693,     748,    48.996),
-    ('cifar10 VGG16-E30p',      2.79,       223,     0.8680,     367,    27.055),
-    ('cifar10 VGG16-E20p(fake)', 2.14,      165,     0.8616,     226,    3.216),
-    ('cifar10 VGG16-E10p(fake)', 1.51,      123,     0.8479,     169,    2.06),
+    ('cifar10 VGG16-E30p',      2.79,       223,     0.868,     367,    27.055),
+    ('cifar10 VGG16-E20p',      1.91,      125,     0.8616,     248,    16.718),
+    ('cifar10 VGG16-E10p',      1.37,      86,      0.8479,       179,    9.982),
     ('cifar10 VGG16-E05p',      0.82,       52,      0.8358,     138,    6.625),
 ]
 
@@ -39,4 +39,12 @@ VGG512_GTSRB_configs = [
     ('GTSRB VGG16-E01p',    0.11,   3,      0.9591,     52,     0.343),
     ('GTSRB VGG16-E00p',    0.06,   3,      0.9520,     48,     0.233),
     ('GTSRB VGG16-E005p',   0.04,   3,      0.9443,     42,     0.18),
+]
+
+VGG512_gender_configs = [
+    ('gender VGG16-E25p',    2.14,   33,     0.828,     226,    3.216),
+    ('gender VGG16-E05p',    0.81,   10,     0.7826,     112,    0.982),
+    ('gender VGG16-E01p',    0.11,   3,      0.7769,     52,     0.343),
+    ('gender VGG16-E00p',    0.06,   3,      0.7732,     48,     0.233),
+    ('gender VGG16-E005p',   0.04,   3,      0.7687,     42,     0.18),
 ]
