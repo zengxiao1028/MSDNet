@@ -5,7 +5,8 @@ import itertools
 import time
 from collections import defaultdict
 import multiprocessing
-from simulation.model_configs import *
+from simulation.baseline_model_configs import *
+
 PRINT_COST = False
 REVERSE_SEARCH = False
 
@@ -32,11 +33,11 @@ vgg2048_gender_Models = [Model.init_from_list('vgg2048', config) for config in V
 
                                             #alpha,     beta,   acc_min, latency_max
 model_types = [(resnet50_imagenet50_Models,  (1e-3,     1e-3,   0.70,   301),    'imagenet50 resnet50'),
-               (resnet50_scene_Models,       (1e-3,     1e-3,   0.80,   301),    'cifar10 resnet50'),
-               (resnet50_imagenet100_Models, (1e-3,     1e-3,   0.80,   2000),  'imagenet100 resnet50'),
+               (resnet50_scene_Models,       (1e-3,     1e-3,   0.80,   301),    'scene resnet50'),
+               (resnet50_imagenet100_Models, (1e-3,     1e-3,   0.87,   1000),   'imagenet100 resnet50'),
                (vgg4096_cifar10_Models,      (5e-4,     1e-3,   0.75,   605),    'cifar10 vgg4096'),
-               (vgg512_GTSRB_Models,         (1e-2,     1e-4,   0.96,   500),    'GTSRB vgg512'),
-               (vgg2048_gender_Models,      (1e-3,     1e-3,   0.78,   300),    'gender vgg2048')
+               (vgg512_GTSRB_Models,         (1e-3,     1e-3,   0.96,   500),    'GTSRB vgg512'),
+               (vgg2048_gender_Models,       (1e-3,     1e-3,   0.70,   700),   'gender vgg2048')
                ]
 
 results_dict = {each[2]: [] for each in model_types}
@@ -175,7 +176,7 @@ def stat_apps(finished_apps):
     delta_latencies = np.hstack(delta_latency_list).flatten()
     assert len(delta_latencies) == sum_nb_infers
     on_time_inferences = delta_latencies <= 0
-    # print(finished_apps[0].name)
+    #print(finished_apps[0].name,app.latency_max)
     # print('Delta acc: {:.2f}, '
     #       'on time rate {:.2f}, '
     #       'average_latency:{:.2f}, '
