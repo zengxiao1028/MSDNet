@@ -65,12 +65,12 @@ class App(object):
         if self.model is not None and self.model.name == sim_model.name:
             load_cost = 0
         else:
-
-            #old_load_time = 0 if self.model is None else self.model.load_time
-            #load model cost
-            #if self.freeze_model:
-            #    load_cost = np.abs(sim_model.load_time - old_load_time)
-            #else:
+            old_load_time = 0 if self.model is None else self.model.load_time
+            ##load model cost
+            if self.freeze_model:
+                if sim_model.size > self.model.size:
+                    load_cost = np.abs(sim_model.load_time - old_load_time)
+            else:
                 load_cost = sim_model.load_time
 
         if print_cost:
