@@ -5,42 +5,34 @@ import itertools
 import time
 from collections import defaultdict
 import multiprocessing
-from simulation.baseline_model_configs import *
+
+
 
 PRINT_COST = False
 REVERSE_SEARCH = False
 
+use_baseline = False
 fair_allocation = True
 minTotalCost = True
+
+if use_baseline:
+    from simulation.baseline_model_configs import *
+    freeze_model = False
+else:
+    from simulation.model_configs import *
+    freeze_model = True
 
 
 S_max = 100
 costs = []
-# name, GFlops, load time, acc, inference time, model size
-
 
 resnet50_imagenet50_Models = [Model.init_from_list('resnet', config) for config in resnet50_imagenet50_configs]
-
 resnet50_scene_Models = [Model.init_from_list('resnet', config) for config in resnet50_scene_configs]
-
 resnet50_imagenet100_Models = [Model.init_from_list('resnet', config) for config in resnet50_imagenet100_configs]
-
 vgg4096_cifar10_Models = [Model.init_from_list('vgg4096', config) for config in VGG4096_cifar10_configs]
-
 vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG512_GTSRB_configs]
-
 vgg2048_gender_Models = [Model.init_from_list('vgg2048', config) for config in VGG2048_gender_configs]
 
-                                            #alpha,     beta,   acc_min, latency_max
-model_types = [(resnet50_imagenet50_Models,  (1e-3,     1e-3,   0.70,   301),    'imagenet50 resnet50'),
-               (resnet50_scene_Models,       (1e-3,     1e-3,   0.80,   301),    'scene resnet50'),
-               (resnet50_imagenet100_Models, (1e-3,     1e-3,   0.87,   1000),   'imagenet100 resnet50'),
-               (vgg4096_cifar10_Models,      (5e-4,     1e-3,   0.75,   605),    'cifar10 vgg4096'),
-               (vgg512_GTSRB_Models,         (1e-3,     1e-3,   0.96,   500),    'GTSRB vgg512'),
-               (vgg2048_gender_Models,       (1e-3,     1e-3,   0.70,   700),   'gender vgg2048')
-               ]
-
-results_dict = {each[2]: [] for each in model_types}
 
 cpu_allocations = [x / 100. for x in range(10, 100, 10)]
 
@@ -98,33 +90,47 @@ def optimize(running_apps):
             app.cpu = best_profile[1][idx]
 
 
-def main():
+def main(alpha,beta):
+
+    # alpha,     beta,   acc_min, latency_max
+    model_types = [(resnet50_imagenet50_Models,     (alpha, beta, 0.542, 300), 'imagenet50 resnet50'),
+                   (resnet50_scene_Models,          (alpha, beta, 0.6487, 700), 'scene resnet50'),
+                   (resnet50_imagenet100_Models,    (alpha, beta, 0.7026, 1000), 'imagenet100 resnet50'),
+                   (vgg4096_cifar10_Models,         (alpha, beta, 0.72, 200), 'cifar10 vgg4096'),
+                   (vgg512_GTSRB_Models,            (alpha, beta, 0.9046, 100), 'GTSRB vgg512'),
+                   (vgg2048_gender_Models,          (alpha, beta, 0.6765, 200), 'gender vgg2048')
+                   ]
+
+    results_dict = {each[2]: [] for each in model_types}
+
     begin_time = time.time()
     np.random.seed(1023)
     optimize_now = False
     running_apps = []
     for i in range(len(model_types)):
         app_model_type = model_types[i]
-        app = App(app_model_type[2], app_model_type[0], *app_model_type[1])
+        app = App(app_model_type[2], app_model_type[0], *app_model_type[1],freeze_model)
         running_apps.append(app)
 
     for t in range(int(1e5)):
 
         # random add apps
-        if np.random.uniform() > 0.99 and len(running_apps) < 6:
+        #if np.random.uniform() > 0.99 and len(running_apps) < 6:
+        if np.random.uniform() > 0.9 and len(running_apps) < 6:
             app_model_type = model_types[t % len(model_types)]
-            app = App(app_model_type[2], app_model_type[0], *app_model_type[1])
+            app = App(app_model_type[2], app_model_type[0], *app_model_type[1],freeze_model)
             running_apps.append(app)
             optimize_now = True
 
         # random delete apps
-        if np.random.uniform() > 0.999 and len(running_apps) > 2:
+        #if np.random.uniform() > 0.999 and len(running_apps) > 2:
+        if np.random.uniform() > 0.9 and len(running_apps) > 2:
             remove_index = 0
 
             if running_apps[remove_index].nb_infers > 1:
                 app = running_apps.pop(remove_index)
 
-                app.print_sum()
+                #app.print_sum()
                 results_dict[app.name].append(app)
                 optimize_now = True
 
@@ -132,22 +138,24 @@ def main():
             optimize(running_apps)
             optimize_now = False
 
-        if t % 1000 == 0:
-            print(t, len(running_apps), [app.model.name for app in running_apps])
+        #if t % 1000 == 0:
+        #    print(t, len(running_apps), [app.model.name for app in running_apps])
 
         for idx, app in enumerate(running_apps):
             app.run_model()
 
     infers = 0
     on_time_infers = 0
+    sum_acc = 0
     for k in sorted(results_dict.keys()):
         v = stat_apps(results_dict[k])
         on_time_infers += v[0]
         infers += v[1]
-
-    print('on_time_infers', on_time_infers / infers)
-    print('cost', np.sum(costs))
-    print('Used time:{:f}'.format(time.time() - begin_time))
+        sum_acc += v[2]
+    print('{:.4f},{}'.format(sum_acc/infers,infers))
+    #print('on_time_infers', on_time_infers / infers)
+    #print('cost', np.sum(costs))
+    #print('Used time:{:f}'.format(time.time() - begin_time))
 
 
 def stat_apps(finished_apps):
@@ -158,7 +166,6 @@ def stat_apps(finished_apps):
     sum_nb_switches = 0
     for app in finished_apps:
         if app.nb_infers == 0:
-            # print('App exit before inference finished.')
             pass
         else:
             delta_acc_list.append(np.array(app.infer_accs) - app.acc_min),
@@ -193,17 +200,17 @@ def stat_apps(finished_apps):
     #                                      one_by_one_fps,
     #                                      mean_fps))
 
-    print('{:.3f},{:.3f},{:.3f},{},{:d},{:d},{:.2f},{:.2f}'.format(
-        np.mean(delta_accuracies),
-        np.sum(on_time_inferences.astype(
-            int)) / len(delta_latencies),
-        np.mean(delta_latencies),
-        np.sum(on_time_inferences.astype(int)),
-        np.sum(sum_nb_infers),
-        np.sum(sum_nb_switches),
-        one_by_one_fps,
-        mean_fps))
-    return (np.sum(on_time_inferences.astype(int)), len(delta_latencies))
+    # print('{:.3f},{:.3f},{:.3f},{},{:d},{:d},{:.2f},{:.2f}'.format(
+    #     np.mean(delta_accuracies),
+    #     np.sum(on_time_inferences.astype(int)) / len(delta_latencies),
+    #     np.mean(delta_latencies),
+    #     np.sum(on_time_inferences.astype(int)),
+    #     np.sum(sum_nb_infers),
+    #     np.sum(sum_nb_switches),
+    #     one_by_one_fps,
+    #     mean_fps))
+    #print(len(delta_accuracies),len(delta_latencies),sum_nb_infers)
+    return (np.sum(on_time_inferences.astype(int)), len(delta_latencies), np.sum(delta_accuracies) )
 
 
 def compute_sum_cost(running_apps, model_scheme, cpu_scheme, print_cost=False):
@@ -221,4 +228,18 @@ def compute_sum_mem(models):
 
 
 if __name__ == '__main__':
-    main()
+
+    # main(0.0005, 1)
+    alpha_list = [1,0.001,0.0008,0.0007,0.00065,0.0005,0.0003,0.00029,0.00026,0.00023,
+                  0.0002,0.00019,0.00016,0.00013,0.0001,0.00005,0.00003,0.00002,0.000017,
+                  0.000015,0.000013,0.00001,0]
+    for a in alpha_list:
+        alpha=a
+        main(alpha, beta=0)
+
+
+
+    # beta_list = [1,0.1,0.001,0.0001,0.00001,0]
+    # for b in beta_list:
+    #     beta = b
+    #     main(0.0005, beta)

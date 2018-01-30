@@ -4,14 +4,13 @@ cpu_speed = 1.0
 
 class App(object):
 
-    freeze_model = True
 
-    def __init__(self, name, candidate_models,  alpha=0.05, beta=0.001, acc_min=0, lag_max=0):
+    def __init__(self, name, candidate_models,  alpha=0.05, beta=0.001, acc_min=0, lag_max=0, freeze_model=False):
         self.name = name
         self.can_models = candidate_models
 
         self.acc_min = np.random.normal(acc_min, acc_min*0.001)
-
+        self.freeze_model = freeze_model
         #self.latency_max = np.random.normal(candidate_models[0].infer_time, 10)
         self.latency_max = np.random.normal(lag_max,10)
         self.nb_switches = 0
@@ -41,13 +40,17 @@ class App(object):
                 self.nb_switches += 1
                 self.infer_remain_time = self.model.infer_time
 
-                old_load_time = 0 if self.model is None else self.model.load_time
-                if self.freeze_model:
-                    # go bigger:
-                    if model.size > self.model.size:
-                        self.load_model_time = np.abs(old_load_time - model.load_time)
-                else:
+                if self.model is None:
                     self.load_model_time = model.load_time
+                else:
+                    if self.freeze_model:
+                        # go bigger:
+                        if model.size > self.model.size:
+                            self.load_model_time = np.abs(self.model.load_time - model.load_time)
+                        else:
+                            self.load_model_time = 0
+                    else:
+                        self.load_model_time = model.load_time
 
 
     ## load sim model for computing cost
@@ -57,23 +60,30 @@ class App(object):
 
     def compute_cost(self, sim_model, sim_cpu, print_cost=False):
 
-        acc_cost = max( self.acc_min - sim_model.acc, 0)
-        latency_cost = max( sim_model.infer_time /sim_cpu - self.latency_max  , 0)
+        #acc_cost = max( self.acc_min - sim_model.acc, 0)
+        acc_cost = self.acc_min - sim_model.acc
+        #latency_cost = max( sim_model.infer_time /sim_cpu - self.latency_max  , 0)
+        latency_cost = sim_model.infer_time /sim_cpu - self.latency_max
         #latency_cost = sim_model.infer_time * sim_cpu
 
-
+        #compute load cost
+        #if already load, then no cost.
         if self.model is not None and self.model.name == sim_model.name:
             load_cost = 0
         else:
-            old_load_time = 0 if self.model is None else self.model.load_time
-            ##load model cost
-            if self.freeze_model:
-                if sim_model.size > self.model.size:
-                    load_cost = np.abs(sim_model.load_time - old_load_time)
-            else:
+            if self.model is None:
                 load_cost = sim_model.load_time
+            else:
+                ##load model cost
+                if self.freeze_model:
+                    if sim_model.size > self.model.size:
+                        load_cost = np.abs(sim_model.load_time - self.model.load_time)
+                    else:
+                        load_cost = 0
+                else:
+                    load_cost = sim_model.load_time
 
-        if print_cost:
+        if print_cost and load_cost!=0:
             print('acc:{:.3f}, lag:{:.3f}, load:{:.3f}'.format(acc_cost,self.alpha * latency_cost,self.beta * load_cost,
                   acc_cost + self.alpha * latency_cost + self.beta * load_cost))
         return acc_cost + self.alpha * latency_cost + self.beta * load_cost
