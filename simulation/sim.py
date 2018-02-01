@@ -11,9 +11,9 @@ import multiprocessing
 PRINT_COST = False
 REVERSE_SEARCH = False
 
-use_baseline = False
-fair_allocation = True
-minTotalCost = True
+use_baseline = True
+fair_allocation = False
+minTotalCost = False
 
 if use_baseline:
     from simulation.baseline_model_configs import *
@@ -34,8 +34,8 @@ vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG5
 vgg2048_gender_Models = [Model.init_from_list('vgg2048', config) for config in VGG2048_gender_configs]
 
 
-cpu_allocations = [x / 100. for x in range(10, 100, 10)]
-
+cpu_allocations = [x / 100. for x in range(10, 51, 5)] + [1.]
+#cpu_allocations = [x / 100. for x in range(10, 100, 10)]
 
 def compute_scheme_cost(cpu_scheme, models_schemes, running_apps):
     profiles = []
@@ -115,16 +115,16 @@ def main(alpha,beta):
     for t in range(int(1e5)):
 
         # random add apps
-        #if np.random.uniform() > 0.99 and len(running_apps) < 6:
-        if np.random.uniform() > 0.9 and len(running_apps) < 6:
+        if np.random.uniform() > 0.99 and len(running_apps) < 6:
+        #if np.random.uniform() > 0.9 and len(running_apps) < 6:
             app_model_type = model_types[t % len(model_types)]
             app = App(app_model_type[2], app_model_type[0], *app_model_type[1],freeze_model)
             running_apps.append(app)
             optimize_now = True
 
         # random delete apps
-        #if np.random.uniform() > 0.999 and len(running_apps) > 2:
-        if np.random.uniform() > 0.9 and len(running_apps) > 2:
+        if np.random.uniform() > 0.999 and len(running_apps) > 2:
+        #if np.random.uniform() > 0.9 and len(running_apps) > 2:
             remove_index = 0
 
             if running_apps[remove_index].nb_infers > 1:
