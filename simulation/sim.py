@@ -72,7 +72,6 @@ def optimize(running_apps):
     with multiprocessing.Pool(processes=12) as pool:
         results = pool.starmap(compute_scheme_cost, schemes)
 
-
     ## brutal search for the optimal solution ##
     sorted_results = sorted(results, key=lambda profile: profile[-1], reverse=REVERSE_SEARCH)
     best_profile = sorted_results[0]
