@@ -3,25 +3,26 @@ import copy
 from simulation.model import App, Model, cpu_speed
 import itertools
 import time
-from collections import defaultdict
 import multiprocessing
-
-
 
 PRINT_COST = False
 REVERSE_SEARCH = False
 
-use_baseline = True
-fair_allocation = False
+
+use_baseline = False
+fair_allocation = True
 minTotalCost = False
+
+
 
 if use_baseline:
     from simulation.baseline_model_configs import *
+
     freeze_model = False
 else:
     from simulation.model_configs import *
-    freeze_model = True
 
+    freeze_model = True
 
 S_max = 100
 costs = []
@@ -34,8 +35,8 @@ vgg512_GTSRB_Models = [Model.init_from_list('vgg512', config) for config in VGG5
 vgg2048_gender_Models = [Model.init_from_list('vgg2048', config) for config in VGG2048_gender_configs]
 
 
-cpu_allocations = [x / 100. for x in range(10, 51, 5)] + [1.]
-#cpu_allocations = [x / 100. for x in range(10, 100, 10)]
+cpu_allocations = [x / 100. for x in range(10, 100, 10)]
+
 
 def compute_scheme_cost(cpu_scheme, models_schemes, running_apps):
     profiles = []
@@ -71,27 +72,58 @@ def optimize(running_apps):
     with multiprocessing.Pool(processes=12) as pool:
         results = pool.starmap(compute_scheme_cost, schemes)
 
-    for result in results:
-        compute_sum_cost(running_apps, result[0], result[1], print_cost=False)
 
     ## brutal search for the optimal solution ##
     sorted_results = sorted(results, key=lambda profile: profile[-1], reverse=REVERSE_SEARCH)
     best_profile = sorted_results[0]
-    compute_sum_cost(running_apps, best_profile[0], best_profile[1], print_cost=PRINT_COST)
+
 
     if best_profile is None:
         print('No optimal solution found')
     else:
         ### load (switch) best profile ###
-        cost = compute_sum_cost(running_apps, best_profile[0], best_profile[1])
+        #print('Fair cost break down:')
+        cost = compute_sum_cost(running_apps, best_profile[0], best_profile[1],print_cost=False)
         costs.append(cost)
         for idx, app in enumerate(running_apps):
             app.load_model(best_profile[0][idx])
             app.cpu = best_profile[1][idx]
 
+    #optimize_2(running_apps)
 
-def main(alpha,beta):
 
+def optimize_2(running_apps):
+    model_product = itertools.product(*[app.can_models for app in running_apps])
+    models_schemes = [each for each in model_product if compute_sum_mem(each) <= S_max]
+    models_scheme = list(models_schemes[0])
+
+    cpu_scheme = [0.01 for x in running_apps]
+
+    while np.sum(cpu_scheme) < 1:
+        delta_cpu = 0.01
+
+        # select app with highest cost:
+        app_idx = select_highest_cost_app(running_apps, models_scheme, cpu_scheme)
+
+        # assign cpu resource to it
+        cpu_scheme[app_idx] += delta_cpu
+
+        # select model for it
+        model_idx = select_lowest_cost_model(running_apps[app_idx], cpu_scheme[app_idx])
+        models_scheme[app_idx] = running_apps[app_idx].can_models[model_idx]
+
+    for idx, app in enumerate(running_apps):
+        app.load_model(models_scheme[idx])
+        app.cpu = cpu_scheme[idx]
+
+    #print('MinMax cost break down:')
+    compute_sum_cost(running_apps,models_scheme,cpu_scheme,False)
+
+
+
+
+
+def main(alpha, beta):
     # alpha,     beta,   acc_min, latency_max
     model_types = [(resnet50_imagenet50_Models,     (alpha, beta, 0.542, 300), 'imagenet50 resnet50'),
                    (resnet50_scene_Models,          (alpha, beta, 0.6487, 700), 'scene resnet50'),
@@ -109,7 +141,7 @@ def main(alpha,beta):
     running_apps = []
     for i in range(len(model_types)):
         app_model_type = model_types[i]
-        app = App(app_model_type[2], app_model_type[0], *app_model_type[1],freeze_model)
+        app = App(app_model_type[2], app_model_type[0], *app_model_type[1], freeze_model)
         running_apps.append(app)
 
     for t in range(int(1e5)):
@@ -135,7 +167,10 @@ def main(alpha,beta):
                 optimize_now = True
 
         if t == 0 or optimize_now:
-            optimize(running_apps)
+            if fair_allocation:
+                optimize(running_apps)
+            else:
+                optimize_2(running_apps)
             optimize_now = False
 
         #if t % 1000 == 0:
@@ -147,12 +182,14 @@ def main(alpha,beta):
     infers = 0
     on_time_infers = 0
     sum_acc = 0
+    sum_fps = 0
     for k in sorted(results_dict.keys()):
         v = stat_apps(results_dict[k])
         on_time_infers += v[0]
         infers += v[1]
         sum_acc += v[2]
-    print('{:.4f},{}'.format(sum_acc/infers,infers))
+        sum_fps += v[3]
+    print('{:.4f},{},{:.4f}'.format(sum_acc/infers,infers,sum_fps/infers))
     #print('on_time_infers', on_time_infers / infers)
     #print('cost', np.sum(costs))
     #print('Used time:{:f}'.format(time.time() - begin_time))
@@ -183,7 +220,7 @@ def stat_apps(finished_apps):
     delta_latencies = np.hstack(delta_latency_list).flatten()
     assert len(delta_latencies) == sum_nb_infers
     on_time_inferences = delta_latencies <= 0
-    #print(finished_apps[0].name,app.latency_max)
+    # print(finished_apps[0].name,app.latency_max)
     # print('Delta acc: {:.2f}, '
     #       'on time rate {:.2f}, '
     #       'average_latency:{:.2f}, '
@@ -209,13 +246,24 @@ def stat_apps(finished_apps):
     #     np.sum(sum_nb_switches),
     #     one_by_one_fps,
     #     mean_fps))
-    #print(len(delta_accuracies),len(delta_latencies),sum_nb_infers)
-    return (np.sum(on_time_inferences.astype(int)), len(delta_latencies), np.sum(delta_accuracies) )
+
+    return (np.sum(on_time_inferences.astype(int)), len(delta_latencies), np.sum(delta_accuracies), sum_nb_infers*mean_fps )
 
 
 def compute_sum_cost(running_apps, model_scheme, cpu_scheme, print_cost=False):
     return np.sum(
         [app.compute_cost(model_scheme[idx], cpu_scheme[idx], print_cost) for idx, app in enumerate(running_apps)])
+
+
+def select_highest_cost_app(running_apps, model_scheme, cpu_scheme, print_cost=False):
+    costs_list = [app.compute_cost(model_scheme[idx], cpu_scheme[idx], print_cost) for idx, app in
+                  enumerate(running_apps)]
+    return np.argmax(costs_list)
+
+
+def select_lowest_cost_model(app, cpu_resouce, print_cost=False):
+    return np.argmin(
+        [app.compute_cost(can_model, cpu_resouce, print_cost) for can_model in app.can_models])
 
 
 def compute_max_cost(running_apps, model_scheme, cpu_scheme, print_cost=False):
@@ -229,7 +277,7 @@ def compute_sum_mem(models):
 
 if __name__ == '__main__':
 
-    # main(0.0005, 1)
+
     alpha_list = [1,0.001,0.0008,0.0007,0.00065,0.0005,0.0003,0.00029,0.00026,0.00023,
                   0.0002,0.00019,0.00016,0.00013,0.0001,0.00005,0.00003,0.00002,0.000017,
                   0.000015,0.000013,0.00001,0]

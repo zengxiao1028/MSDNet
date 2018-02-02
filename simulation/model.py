@@ -1,6 +1,9 @@
 import numpy as np
-
+import math
 cpu_speed = 1.0
+
+def leaky_relu(x):
+    return x if x >= 0 else 0.3*x
 
 class App(object):
 
@@ -63,7 +66,7 @@ class App(object):
         #acc_cost = max( self.acc_min - sim_model.acc, 0)
         acc_cost = self.acc_min - sim_model.acc
         #latency_cost = max( sim_model.infer_time /sim_cpu - self.latency_max  , 0)
-        latency_cost = sim_model.infer_time /sim_cpu - self.latency_max
+        latency_cost = sim_model.infer_time / sim_cpu - self.latency_max
         #latency_cost = sim_model.infer_time * sim_cpu
 
         #compute load cost
@@ -83,7 +86,7 @@ class App(object):
                 else:
                     load_cost = sim_model.load_time
 
-        if print_cost and load_cost!=0:
+        if print_cost:
             print('acc:{:.3f}, lag:{:.3f}, load:{:.3f}'.format(acc_cost,self.alpha * latency_cost,self.beta * load_cost,
                   acc_cost + self.alpha * latency_cost + self.beta * load_cost))
         return acc_cost + self.alpha * latency_cost + self.beta * load_cost
