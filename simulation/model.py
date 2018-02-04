@@ -29,7 +29,7 @@ class App(object):
         self.last_time = 0
         self.ellapse_times = []
         self.sim_model = None
-
+        self.sum_load_model_time = 0
         self.sim_cpu = 0
         self.cpu = 0
 
@@ -115,7 +115,7 @@ class App(object):
         #load model
         if self.load_model_time > 0:
             self.load_model_time -= 1
-
+            self.sum_load_model_time += 1
         ## finish loading model, inference
         else:
             # inference finished
@@ -133,8 +133,9 @@ class App(object):
         self.ellapse = self.ellapse + 1
 
     def print_sum(self):
-        print(self.name + "Run for {} times, mean acc {:.2f}/{:.2f}, average lag:{:.2f}/{:.2f}".format(
-            self.nb_infers, np.mean(self.infer_accs),self.acc_min, np.mean(self.ellapse_times), self.latency_max / cpu_speed))
+        print(self.name + "\t{}, Run for {} times, switch {} times, mean acc {:.2f}/{:.2f}, average lag:{:.2f}/{:.2f}".format(
+            self.model.name,
+            self.nb_infers, self.nb_switches, np.mean(self.infer_accs),self.acc_min, np.mean(self.ellapse_times), self.latency_max / cpu_speed))
 
     def get_mem_cost(self):
         return 0 if self.model is None else self.model.size
