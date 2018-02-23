@@ -28,21 +28,19 @@ class App(object):
         self.infer_accs = []
         self.last_time = 0
         self.ellapse_times = []
-        self.sim_model = None
-
+        self.sum_load_model_time = 0
         self.sim_cpu = 0
         self.cpu = 0
 
 
     def load_model(self, model):
 
+        if self.load_model_time > 0:
+            return
+
         if self.model is not None and self.model.name == model.name:
             pass
         else:
-                self.model = model
-                self.nb_switches += 1
-                self.infer_remain_time = self.model.infer_time
-
                 if self.model is None:
                     self.load_model_time = model.load_time
                 else:
@@ -55,10 +53,11 @@ class App(object):
                     else:
                         self.load_model_time = model.load_time
 
+                self.model = model
+                self.nb_switches += 1
+                self.infer_remain_time = self.model.infer_time
 
-    ## load sim model for computing cost
-    def sim_load_model(self, model):
-        self.sim_model = model
+
 
 
     def compute_cost(self, sim_model, sim_cpu, print_cost=False):
@@ -91,33 +90,22 @@ class App(object):
                   acc_cost + self.alpha * latency_cost + self.beta * load_cost))
         return acc_cost + self.alpha * latency_cost + self.beta * load_cost
 
-    # def compute_cost(self, running_apps):
-    #     if self.sim_model is None:
-    #         return 10000000
-    #
-    #     acc_cost = self.acc_min -  self.sim_model.acc
-    #     latency_cost = max( (self.sim_model.infer_time - self.latency_max )/self.sim_cpu , 0)
-    #
-    #     if self.model is None or self.model.name != self.sim_model.name:
-    #         load_cost = self.sim_model.load_time
-    #     else:
-    #         load_cost = 0
 
-    #     return acc_cost + self.alpha * latency_cost + self.beta * load_cost
+
 
     def run_model(self):
-        #acc, flops(latency)
-        #allocated_consumed_time = self.get_Gflops() * cpu_speed / np.sum([app.get_Gflops() for app in running_apps])
-        allocated_consumed_time = self.cpu
-        #allocated_consumed_time = cpu_speed
-        new_remain_time = self.infer_remain_time - allocated_consumed_time
 
         #load model
         if self.load_model_time > 0:
+            #just loaded
+            if self.load_model_time == self.model.load_time:
+                self.last_time = self.ellapse
             self.load_model_time -= 1
+            self.sum_load_model_time += 1
 
         ## finish loading model, inference
         else:
+            new_remain_time = self.infer_remain_time - self.cpu
             # inference finished
             if new_remain_time <= 0:
                 self.ellapse_times.append(self.ellapse - self.last_time)
@@ -133,8 +121,15 @@ class App(object):
         self.ellapse = self.ellapse + 1
 
     def print_sum(self):
-        print(self.name + "Run for {} times, mean acc {:.2f}/{:.2f}, average lag:{:.2f}/{:.2f}".format(
-            self.nb_infers, np.mean(self.infer_accs),self.acc_min, np.mean(self.ellapse_times), self.latency_max / cpu_speed))
+        print(self.name + "\t{}, Run for {} times, switch {} times, mean acc {:.2f}/{:.2f}, average lag:{:.2f}/{:.2f}".format(
+            self.model.name,
+            self.nb_infers, self.nb_switches, np.mean(self.infer_accs),self.acc_min, np.mean(self.ellapse_times), self.latency_max / cpu_speed))
+
+    def print_sim_2(self):
+        fps_list = 1000./np.array(self.ellapse_times)
+        fps = np.mean(fps_list)
+        print("Run {} times, switch {} times, sum_load_model_time{}, fps{}".
+              format(self.nb_infers, self.nb_switches, self.sum_load_model_time,fps) )
 
     def get_mem_cost(self):
         return 0 if self.model is None else self.model.size
