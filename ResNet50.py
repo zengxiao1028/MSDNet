@@ -24,7 +24,7 @@ from collections import defaultdict
 from keras.utils.layer_utils import count_params
 from keras.applications.imagenet_utils import _obtain_input_shape, preprocess_input, decode_predictions
 from keras.engine.topology import get_source_inputs
-
+from keras.layers import SeparableConv2D
 WEIGHTS_PATH = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels.h5'
 WEIGHTS_PATH_NO_TOP = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5'
 

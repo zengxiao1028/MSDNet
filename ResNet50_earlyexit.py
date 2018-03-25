@@ -2,8 +2,13 @@ import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-from tensorflow.python.framework import graph_util
-from tensorflow.python.framework import graph_io
+import tensorflow as tf
+from keras.backend.tensorflow_backend import set_session
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
+sess = tf.Session(config=config)
+set_session(sess)  # set this TensorFlow session as the default session for Keras
+
 from keras.layers import Conv2D, BatchNormalization, Activation, Input, MaxPooling2D, AveragePooling2D, Flatten, Dense
 from keras.layers import GlobalAveragePooling2D, GlobalMaxPooling2D
 from keras import layers
@@ -35,6 +40,7 @@ from keras.layers import Reshape
 from keras.models import load_model
 from dataset.imagenet import imagenet_generator
 from ResNet50 import ResNet50
+from keras.layers import SeparableConv2D
 
 def multile_output_generator(gen):
     while True:
@@ -46,7 +52,7 @@ class EE_ResNet50(ResNet50):
     ee_names = ['max_pooling2d_1', 'activation_4','ee2b','ee2c','activation_11','ee3b','ee3c',
                 'ee3d','activation_20','ee4b','ee4c','ee4d','ee4e', 'ee4f','activation_33','ee5b']
 
-    def generate_ee_model(self):
+    def generate_ee_model(self,freeze=True, add_depthwise=False):
 
         def relu6(x):
             return K.relu(x, max_value=6)
@@ -80,6 +86,9 @@ class EE_ResNet50(ResNet50):
             return Activation(relu6)(x)
 
         def _create_ouput(x, ee_name):
+
+            x = SeparableConv2D(64,(3,3),activation='relu')(x)
+
             x = GlobalAveragePooling2D()(x)
             x = Reshape((1, 1, -1), )(x)
             x = Conv2D(self.config['model']['classes'], (1, 1),
@@ -88,9 +97,10 @@ class EE_ResNet50(ResNet50):
             x = Reshape((self.config['model']['classes'],), name=ee_name + '_output')(x)
             return x
 
-        layers = self.model.layers
-        # for layer in layers:
-        #     layer.trainable = False
+        if freeze:
+            layers = self.model.layers
+            for layer in layers:
+                layer.trainable = False
 
         print([layer.name for layer in layers])
         ee_layers = [ layer for layer in self.model.layers if layer.name in self.ee_names]
@@ -105,9 +115,6 @@ class EE_ResNet50(ResNet50):
         model = Model(inputs=self.model.inputs, outputs=ee_outputs + [self.model.output] )
 
         self.model = model
-
-
-
 
 
 
@@ -197,6 +204,70 @@ class EE_ResNet50(ResNet50):
         print(evaluation)
         return evaluation
 
+    def train_imagenet(self, training_save_dir='./resnet/imagenet/results', epochs=None):
+
+        epochs = epochs if epochs is not None else self.config['train']['epochs']
+        train_generator, validation_generator = imagenet_generator.data_generator('./dataset/imagenet/train/',
+                                                                                  './dataset/imagenet/val/',
+                                                                                  self.config['train']['batch_size'],
+                                                                                  top_n_classes=self.config['model'][
+                                                                                      'classes'])
+
+        #### comppile model ########
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        self.model.summary()
+        #### prepare training ########
+        name = self.model.name
+        os.makedirs(training_save_dir, exist_ok=True)
+        result_counter = len(
+            [log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
+        saved_dir = os.path.join(training_save_dir, name + '_' + str(result_counter))
+        os.makedirs(saved_dir, exist_ok=True)
+        shutil.copyfile(self.config_path, os.path.join(saved_dir, self.config_path.split('/')[-1]))
+        best_checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '_best.h5'),
+                                          monitor='val_acc',
+                                          verbose=1,
+                                          save_best_only=True,
+                                          mode='max',
+                                          period=1)
+
+        checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '.h5'),
+                                     monitor='val_acc',
+                                     verbose=1,
+                                     save_best_only=False,
+                                     mode='max',
+                                     period=1)
+
+        tensorboard = TensorBoard(log_dir=saved_dir,
+                                  histogram_freq=0,
+                                  write_graph=True,
+                                  write_images=False)
+
+        self.model.fit_generator(generator=multile_output_generator(train_generator),
+                                 steps_per_epoch=train_generator.samples // self.config['train']['batch_size'],
+                                 epochs=epochs,
+                                 validation_data=multile_output_generator(validation_generator),
+                                 validation_steps=(validation_generator.samples // self.config['train'][
+                                     'batch_size']) * 0.5,
+                                 callbacks=[best_checkpoint, checkpoint, tensorboard],
+                                 max_queue_size=64)
+
+    def eval_imagenet(self, steps=None):
+
+        _, validation_generator = imagenet_generator.data_generator('./dataset/imagenet/train/',
+                                                                    './dataset/imagenet/val/',
+                                                                    self.config['train']['batch_size'],
+                                                                    top_n_classes=self.config['model']['classes'])
+
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        if steps is None:
+            steps = validation_generator.samples // self.config['train']['batch_size']
+        evaluation = self.model.evaluate_generator(multile_output_generator(validation_generator),
+                                                   steps=steps)
+        print(evaluation)
+        return evaluation
 
 
 
@@ -205,7 +276,15 @@ def main_car():
                                                                               '/hongkong_car/results/80_1/80_best.h5')
     ee_resnet100.generate_ee_model()
     ee_resnet100.eval_hongkong_car()
-    ee_resnet100.train_hongkong_car(training_save_dir='./resnet/hongkong_car/ee_results')
+    ee_resnet100.train_hongkong_car(training_save_dir='./resnet/hongkong_car/ee_results',epochs=200)
+
+def main_imagenet():
+    ee_resnet100 = EE_ResNet50('./resnet/imagenet/configs/100.json', weights_path='/home/xiao/projects/MSDNet/resnet'
+                                                                              '/imagenet/results/100_1/100_best.h5')
+    ee_resnet100.generate_ee_model(freeze=True, add_depthwise=True)
+
+    ee_resnet100.eval_imagenet()
+    ee_resnet100.train_imagenet(training_save_dir='./resnet/imagenet/ee_results', epochs=200)
 
 
 
@@ -222,5 +301,5 @@ if __name__ == '__main__':
 
     # main_dog()
 
-    main_car()
+    main_imagenet()
 
