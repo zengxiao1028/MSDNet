@@ -1209,7 +1209,6 @@ class ResNet50(object):
                                   write_graph=True,
                                   write_images=False)
 
-        e_s = EarlyStopping(patience=10)
 
         self.model.fit_generator(generator=train_generator,
                                  steps_per_epoch=train_generator.samples // self.config['train']['batch_size'],

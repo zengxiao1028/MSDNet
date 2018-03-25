@@ -271,21 +271,137 @@ class EE_ResNet50(ResNet50):
 
 
 
+    def train_scene(self, training_save_dir='./resnet/scene/results', epochs=None):
+        classes = ['bookstore', 'computer_room', 'kitchen', 'airplane_cabin', 'swimming_pool-indoor', 'art_gallery',
+                   'beach',
+                   'mountain', 'rainforest', 'highway', 'crosswalk', 'campus', 'baseball_field', 'landfill',
+                   'vegetable_garden',
+                   'street', 'cafeteria', 'office', 'staircase', 'subway_station-platform', 'gymnasium-indoor',
+                   'movie_theater-indoor',
+                   'waterfall', 'desert-sand', 'golf_course', 'playground', 'parking_lot', 'tower', 'water_park', 'dam',
+                   'balcony-exterior',
+                   'phone_booth']
+
+        epochs = epochs if epochs is not None else self.config['train']['epochs']
+
+        train_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input,
+            shear_range=0.1,
+            zoom_range=0.2,
+            horizontal_flip=False,
+            rotation_range=15.,
+            width_shift_range=0.1,
+            height_shift_range=0.1)
+
+        train_generator = train_datagen.flow_from_directory(
+            './dataset/scene/train/',
+            classes=classes,
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical'
+        )
+
+        test_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
+
+        validation_generator = test_datagen.flow_from_directory(
+            './dataset/scene/test/',
+            classes=classes,
+            target_size=(224, 224),
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
+
+        #### comppile model ########
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        # self.model.summary()
+        #### prepare training ########
+        name = self.model.name
+        os.makedirs(training_save_dir, exist_ok=True)
+        result_counter = len(
+            [log for log in os.listdir(training_save_dir) if name == '_'.join(log.split('_')[:-1])]) + 1
+        saved_dir = os.path.join(training_save_dir, name + '_' + str(result_counter))
+        os.makedirs(saved_dir, exist_ok=True)
+        shutil.copyfile(self.config_path, os.path.join(saved_dir, self.config_path.split('/')[-1]))
+        best_checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '_best.h5'),
+                                          monitor='val_acc',
+                                          verbose=1,
+                                          save_best_only=True,
+                                          mode='max',
+                                          period=1)
+
+        checkpoint = ModelCheckpoint(os.path.join(saved_dir, self.model.name + '.h5'),
+                                     monitor='val_acc',
+                                     verbose=1,
+                                     save_best_only=False,
+                                     mode='max',
+                                     period=1)
+
+        tensorboard = TensorBoard(log_dir=saved_dir,
+                                  histogram_freq=0,
+                                  write_graph=True,
+                                  write_images=False)
+
+
+        self.model.fit_generator(generator=multile_output_generator(train_generator),
+                                 steps_per_epoch=train_generator.samples // self.config['train']['batch_size'],
+                                 epochs=epochs,
+                                 validation_data=multile_output_generator(validation_generator),
+                                 validation_steps=validation_generator.samples // self.config['train']['batch_size'],
+                                 callbacks=[best_checkpoint, checkpoint, tensorboard],
+                                 max_queue_size=64)
+
+    def eval_scene(self, steps=None):
+        classes = ['bookstore', 'computer_room', 'kitchen', 'airplane_cabin', 'swimming_pool-indoor', 'art_gallery',
+                   'beach',
+                   'mountain', 'rainforest', 'highway', 'crosswalk', 'campus', 'baseball_field', 'landfill',
+                   'vegetable_garden',
+                   'street', 'cafeteria', 'office', 'staircase', 'subway_station-platform', 'gymnasium-indoor',
+                   'movie_theater-indoor',
+                   'waterfall', 'desert-sand', 'golf_course', 'playground', 'parking_lot', 'tower', 'water_park', 'dam',
+                   'balcony-exterior',
+                   'phone_booth']
+        test_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
+
+        validation_generator = test_datagen.flow_from_directory(
+            './dataset/scene/test/',
+            target_size=(224, 224),
+            classes=classes,
+            batch_size=self.config['train']['batch_size'],
+            class_mode='categorical')
+
+        opt = adam(lr=1e-4)
+        self.model.compile(opt, loss='categorical_crossentropy', metrics=['accuracy'])
+        if steps is None:
+            steps = validation_generator.samples // self.config['train']['batch_size']
+        evaluation = self.model.evaluate_generator(multile_output_generator(validation_generator),
+                                                   steps=steps)
+        print(evaluation)
+        return evaluation
+
 def main_car():
-    ee_resnet100 = EE_ResNet50('./resnet/hongkong_car/configs/80.json', weights_path='/home/xiao/projects/MSDNet/resnet'
+    ee_resnet = EE_ResNet50('./resnet/hongkong_car/configs/80.json', weights_path='/home/xiao/projects/MSDNet/resnet'
                                                                               '/hongkong_car/results/80_1/80_best.h5')
-    ee_resnet100.generate_ee_model()
-    ee_resnet100.eval_hongkong_car()
-    ee_resnet100.train_hongkong_car(training_save_dir='./resnet/hongkong_car/ee_results',epochs=200)
+    ee_resnet.generate_ee_model()
+    ee_resnet.eval_hongkong_car()
+    ee_resnet.train_hongkong_car(training_save_dir='./resnet/hongkong_car/ee_results',epochs=200)
 
 def main_imagenet():
-    ee_resnet100 = EE_ResNet50('./resnet/imagenet/configs/100.json', weights_path='/home/xiao/projects/MSDNet/resnet'
+    ee_resnet = EE_ResNet50('./resnet/imagenet/configs/100.json', weights_path='/home/xiao/projects/MSDNet/resnet'
                                                                               '/imagenet/results/100_1/100_best.h5')
-    ee_resnet100.generate_ee_model(freeze=True, add_depthwise=True)
+    ee_resnet.generate_ee_model(freeze=True, add_depthwise=True)
 
-    ee_resnet100.eval_imagenet()
-    ee_resnet100.train_imagenet(training_save_dir='./resnet/imagenet/ee_results', epochs=200)
+    ee_resnet.eval_imagenet()
+    ee_resnet.train_imagenet(training_save_dir='./resnet/imagenet/ee_results', epochs=200)
 
+def main_scene():
+    ee_resnet = EE_ResNet50('./resnet/scene/configs/90.json', weights_path='/home/xiao/projects/MSDNet/resnet'
+                                                                                  '/scene/results/90_1/90_best.h5')
+    ee_resnet.generate_ee_model(freeze=True, add_depthwise=True)
+
+    ee_resnet.eval_scene()
+    ee_resnet.train_scene(training_save_dir='./resnet/scene/ee_results', epochs=200)
 
 
 if __name__ == '__main__':
@@ -301,5 +417,6 @@ if __name__ == '__main__':
 
     # main_dog()
 
-    main_imagenet()
+    #main_imagenet()
+    main_scene()
 
