@@ -87,7 +87,8 @@ class EE_ResNet50(ResNet50):
 
         def _create_ouput(x, ee_name):
 
-            x = SeparableConv2D(64,(3,3),activation='relu')(x)
+            if add_depthwise:
+                x = SeparableConv2D(64,(3,3),activation='relu')(x)
 
             x = GlobalAveragePooling2D()(x)
             x = Reshape((1, 1, -1), )(x)
@@ -184,6 +185,20 @@ class EE_ResNet50(ResNet50):
                                  validation_steps=validation_generator.samples // self.config['train']['batch_size'],
                                  callbacks=[best_checkpoint, checkpoint, tensorboard],
                                  max_queue_size=64)
+
+
+    def compute_flops(self):
+        sum = 0
+        for layer in self.model.layers:
+            if type(layer) is Conv2D:
+                p1 = layer.input.get_shape().as_list()[1:]
+                p2 = layer.output.get_shape().as_list()[-1:]
+                p3 = list(layer.kernel_size)
+                sum += np.product(p1 + p2 + p3)
+            elif type(layer) is Dense:
+                sum += np.product(layer.kernel.get_shape().as_list())
+
+        return sum
 
     def eval_hongkong_car(self, steps=None):
         test_datagen = ImageDataGenerator(
@@ -383,9 +398,9 @@ class EE_ResNet50(ResNet50):
 def main_car():
     ee_resnet = EE_ResNet50('./resnet/hongkong_car/configs/80.json', weights_path='/home/xiao/projects/MSDNet/resnet'
                                                                               '/hongkong_car/results/80_1/80_best.h5')
-    ee_resnet.generate_ee_model()
+    ee_resnet.generate_ee_model(freeze=True, add_depthwise=False)
     ee_resnet.eval_hongkong_car()
-    ee_resnet.train_hongkong_car(training_save_dir='./resnet/hongkong_car/ee_results',epochs=200)
+    ee_resnet.train_hongkong_car(training_save_dir='./resnet/hongkong_car/ee_results', epochs=200)
 
 def main_imagenet():
     ee_resnet = EE_ResNet50('./resnet/imagenet/configs/100.json', weights_path='/home/xiao/projects/MSDNet/resnet'
@@ -409,7 +424,7 @@ if __name__ == '__main__':
     # main_flops()
     # main_imagenet()
     # main_gender()
-    # main_car()
+    main_car()
     # main_vgg_flops()
     # save_models_for_android()
     # main_imagenet100_from_scratch()
@@ -418,5 +433,5 @@ if __name__ == '__main__':
     # main_dog()
 
     #main_imagenet()
-    main_scene()
+    #main_scene()
 
