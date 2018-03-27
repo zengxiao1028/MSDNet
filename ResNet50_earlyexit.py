@@ -189,6 +189,7 @@ class EE_ResNet50(ResNet50):
 
     def compute_flops(self):
         sum = 0
+        flops = dict()
         for layer in self.model.layers:
             if type(layer) is Conv2D:
                 p1 = layer.input.get_shape().as_list()[1:]
@@ -197,6 +198,8 @@ class EE_ResNet50(ResNet50):
                 sum += np.product(p1 + p2 + p3)
             elif type(layer) is Dense:
                 sum += np.product(layer.kernel.get_shape().as_list())
+            if layer.name in self.ee_names:
+                flops[layer.name] = sum
 
         return sum
 
@@ -418,20 +421,28 @@ def main_scene():
     ee_resnet.eval_scene()
     ee_resnet.train_scene(training_save_dir='./resnet/scene/ee_results', epochs=200)
 
+def main_compute_flops():
+
+    ee_resnet = EE_ResNet50('./resnet/scene/configs/90.json', weights_path='/home/xiao/projects/MSDNet/resnet'
+                                                                           '/scene/results/90_1/90_best.h5')
+    ee_resnet.generate_ee_model(freeze=True, add_depthwise=True)
+
+    ee_resnet.compute_flops()
+
 
 if __name__ == '__main__':
     # main_GTSRB()
     # main_flops()
     # main_imagenet()
     # main_gender()
-    main_car()
+    # main_car()
     # main_vgg_flops()
     # save_models_for_android()
     # main_imagenet100_from_scratch()
     # main_imagenet50_from_scratch()
 
     # main_dog()
-
     #main_imagenet()
     #main_scene()
 
+    main_compute_flops()
